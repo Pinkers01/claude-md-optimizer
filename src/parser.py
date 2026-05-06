@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-"""Parser CLAUDE.md z detekcja duplikatow i sprzecznosci."""
-import re, json, hashlib
+"""Parser CLAUDE.md v4: smart preamble merge, deeper rules, skills inventory."""
+import re, json, os, glob
 from collections import defaultdict
 
 SRC = '/Users/pinky/CLAUDE.md'
+SKILLS_DIR = '/Users/pinky/.claude/skills'
 OUT = '/tmp/claude_md_optimizer/sections.json'
 
 src = open(SRC, 'r', encoding='utf-8').read()
-total = len(src)
+total_chars = len(src)
+total_bytes = len(src.encode('utf-8'))
+total_lines = src.count('\n') + 1
 lines = src.split('\n')
 
-# Parse into sections
+# Pass 1: split into raw sections
 sections = []
 current = {'title': '__PREAMBLE__', 'level': 0, 'lines': []}
 for line in lines:
@@ -23,22 +26,65 @@ for line in lines:
         current['lines'].append(line)
 sections.append(current)
 
-# Merge H3 into parent H1/H2
-merged = []
+# Pass 2: merge "comment-style" H1 headers (those at the very top with no body)
+# These look like:
+#   # CLAUDE.md - Pinky Creative Studio
+#   # Mateusz Kuzniar (Pinky) - Troelstradreef 72...
+# Each is a standalone H1 with empty body. Merge them all into one virtual header section.
+merged_top = []
+i = 0
+header_block = []
+while i < len(sections):
+    s = sections[i]
+    body_lines = [l for l in s['lines'] if not re.match(r'^#{1,3}\s', l) and l.strip()]
+    is_comment_header = (
+        s['level'] == 1 and
+        len(body_lines) <= 1 and
+        i < 8
+    )
+    if is_comment_header:
+        header_block.append(s)
+        i += 1
+    else:
+        break
+
+if len(header_block) >= 2:
+    merged_lines = []
+    titles = []
+    for h in header_block:
+        merged_lines.extend(h['lines'])
+        titles.append(h['title'])
+    virtual = {
+        'title': 'Header & autorzy',
+        'level': 1,
+        'lines': merged_lines,
+        'merged_from': titles,
+    }
+    merged_top.append(virtual)
+    sections = sections[len(header_block):]
+elif len(header_block) == 1:
+    merged_top.extend(header_block)
+    sections = sections[1:]
+
+sections = merged_top + sections
+
+# Pass 3: merge H3 into nearest H1/H2 parent
+final = []
 for s in sections:
     s['content'] = '\n'.join(s['lines'])
     s['chars'] = len(s['content'])
-    if s['level'] >= 3 and merged:
-        merged[-1]['content'] += '\n' + s['content']
-        merged[-1]['chars'] = len(merged[-1]['content'])
+    if s['level'] >= 3 and final:
+        final[-1]['content'] += '\n' + s['content']
+        final[-1]['chars'] = len(final[-1]['content'])
     else:
-        merged.append(s)
+        final.append(s)
 
-# Classification heuristic
+# Classification
 KEEP_KW = ['kim jestem', 'autoryzacja sesji', 'formy zwracania', 'happy app',
            'kontakt pinky', 'design system', 'code style', 'tech stack',
-           'folder standard', '__preamble__', 'easter egg w kodzie',
-           'zasady pracy', 'master directive', 'misja', 'rule precedence']
+           'folder standard', 'easter egg w kodzie',
+           'zasady pracy', 'master directive', 'misja', 'rule precedence',
+           'header & autorzy']
 MOVE_KW = ['moje projekty', 'reguly produktow saas', 'reguły produktów',
            'ai tools stack', 'new project bootstrap', 'codzienne rutyny',
            'tygodniowy raport', 'discord strategy', 'seo priority',
@@ -46,19 +92,21 @@ MOVE_KW = ['moje projekty', 'reguly produktow saas', 'reguły produktów',
            'kafelki', 'cards', 'ruflo', 'lokalni agenci', 'coworking',
            'ghost mode', 'session management', 'master mode',
            'telegram heartbeat', 'autonomous learning', 'hosting architecture',
-           'standardy każdej', 'standardy kazdej', 'instalacja',
+           'standardy kazdej', 'standardy każdej', 'instalacja',
            'pixelforgood', 'stopmetzoeken', 'mural spirit', 'octagon',
            'og electric', '3-task cycle', 'auto-clear', 'mode switching',
            'rejestracja nowych', 'panel admin', 'mobile responsive',
-           'jezyki', 'języki', 'seo', 'auto-load', 'discord',
+           'jezyki', 'języki', 'auto-load', 'discord',
            'mobile-safe', 'master cross-tenant', 'per-project admin',
            'master admin', 'wymagania techniczne', 'anti-patterns',
            'model routing']
 
 def classify(s):
     t = s['title'].lower()
+    if t == '__preamble__':
+        return 'keep'
     for k in KEEP_KW:
-        if k in t and len(k) > 8:
+        if k in t and len(k) > 6:
             return 'keep'
     for k in MOVE_KW:
         if k in t:
@@ -75,66 +123,35 @@ def slugify(t):
 def filename_for(s):
     t = s['title'].lower()
     if any(p in t for p in ['pixelforgood', 'stopmetzoeken', 'mural', 'octagon',
-                             'og electric', 'invoiceflow']):
-        prefix = 'project_'
+                             'og electric', 'invoiceflow', 'ruflo', 'ghost',
+                             'projekty', 'session']):
+        prefix = 'project_' if any(p in t for p in ['pixelforgood','stopmetzoeken','mural','octagon','og electric','invoiceflow','projekty']) else 'feedback_'
     elif 'reference' in t or 'kontakt' in t or 'strato' in t:
         prefix = 'reference_'
     else:
         prefix = 'feedback_'
     return prefix + slugify(s['title']) + '.md'
 
-# === DUPLICATE DETECTION ===
-# Tokenize each section into normalized sentences
-def tokenize_sentences(text):
-    text = re.sub(r'```[\s\S]*?```', '', text)  # strip code blocks
-    text = re.sub(r'`[^`]*`', '', text)  # inline code
-    text = re.sub(r'^\s*#{1,6}.*$', '', text, flags=re.M)  # headers
-    text = re.sub(r'\s+', ' ', text)
-    sents = re.split(r'(?<=[.!?])\s+', text)
-    out = []
-    for s in sents:
-        s = s.strip(' -*').strip()
-        if len(s) >= 40:
-            out.append(s)
-    return out
-
-def normalize(s):
-    s = s.lower()
-    s = re.sub(r'[^\w\s]', ' ', s)
-    s = re.sub(r'\s+', ' ', s).strip()
-    return s
-
-def shingles(text, n=5):
-    words = normalize(text).split()
-    return set(' '.join(words[i:i+n]) for i in range(len(words) - n + 1))
-
-# Find duplicates by:
-# 1) Lines (>20 chars normalized) appearing in >1 section
-# 2) Key phrases / rules repeated across sections
+# DUPLICATE DETECTION (line + phrase level)
 duplicates = defaultdict(list)
-
 def norm_line(s):
     s = s.strip(' -*•·>').strip()
     s = re.sub(r'\s+', ' ', s)
     return s.lower()
 
-# Collect normalized lines per section
-line_index = defaultdict(list)  # normalized_line -> [(section_id, original_line)]
-for i, s in enumerate(merged):
-    seen_in_this = set()
+line_index = defaultdict(list)
+for i, s in enumerate(final):
+    seen = set()
     for raw in s['content'].split('\n'):
         n = norm_line(raw)
-        if len(n) < 25:
+        if len(n) < 25 or re.match(r'^#{1,6}\s', n):
             continue
-        if re.match(r'^#{1,6}\s', n):
+        if n in seen:
             continue
-        if n in seen_in_this:
-            continue
-        seen_in_this.add(n)
+        seen.add(n)
         line_index[n].append((i, raw.strip()))
 
-# Phrase fingerprints: detect rule keywords repeated
-key_phrases_re = [
+KEY_PHRASES = [
     (r'\bem-?dash\b|myślnik(?:a)?\s+em', 'reguła em-dash'),
     (r'\bbcrypt\b.*\b12\b', 'bcrypt rounds 12'),
     (r'\bmollie\b.*\bnie\s+stripe\b|\bnigdy\s+stripe\b', 'Mollie nie Stripe'),
@@ -150,7 +167,6 @@ key_phrases_re = [
     (r'apple\s+reminders', 'Apple Reminders'),
     (r'master\s+vault', 'Master Vault'),
     (r'telegram\s+heartbeat|@pinky_openclaw_bot', 'Telegram bot'),
-    (r'\bbypass|--dangerously', 'bypass permissions'),
     (r'NL.*PL.*EN|PL.*NL.*EN|3\s+języki', '3 języki'),
     (r'open\s+design|playwright\s+mcp|opencla[uw]', 'AI tools stack'),
     (r'gp-maschinen', 'gp-maschinen reference'),
@@ -159,135 +175,120 @@ key_phrases_re = [
     (r'invoiceflow', 'InvoiceFlow'),
     (r'stopmetzoeken', 'StopMetZoeken'),
 ]
-phrase_index = defaultdict(set)  # phrase_label -> {section_ids}
-for i, s in enumerate(merged):
+phrase_index = defaultdict(set)
+for i, s in enumerate(final):
     cl = s['content'].lower()
-    for pat, label in key_phrases_re:
+    for pat, label in KEY_PHRASES:
         if re.search(pat, cl, re.I):
             phrase_index[label].add(i)
 
-for n, occurrences in line_index.items():
-    if len(occurrences) >= 2:
-        ids = list({o[0] for o in occurrences})
-        if len(ids) < 2:
-            continue
-        sample = occurrences[0][1][:80]
+for n, occs in line_index.items():
+    ids = list({o[0] for o in occs})
+    if len(ids) >= 2:
+        sample = occs[0][1][:100]
         for sid in ids:
-            others = [x for x in ids if x != sid]
-            duplicates[sid].append({
-                'kind': 'line',
-                'with': others,
-                'sample': sample,
-            })
+            others = sorted([x for x in ids if x != sid])
+            duplicates[sid].append({'kind': 'line', 'with': others, 'sample': sample})
 
 for label, sids in phrase_index.items():
     if len(sids) >= 3:
         for sid in sids:
-            others = sorted(x for x in sids if x != sid)
-            duplicates[sid].append({
-                'kind': 'phrase',
-                'label': label,
-                'with': others,
-                'sample': label,
-            })
+            others = sorted([x for x in sids if x != sid])
+            duplicates[sid].append({'kind': 'phrase', 'label': label, 'with': others, 'sample': label})
 
-# === CONFLICT DETECTION ===
-# Rule-based pairs that signal contradictions
+# CONFLICT DETECTION (deeper rules)
 CONFLICT_RULES = [
-    {
-        'id': 'stripe_vs_mollie',
-        'label': 'Stripe vs Mollie (NL)',
-        'patterns_a': [r'\bnigdy\s+stripe\b', r'mollie\s+nie\s+stripe', r'\bMollie\s+\(primary'],
-        'patterns_b': [r'invoiceflow.*stripe', r'stripe\s+€\d+', r'using\s+stripe'],
-    },
-    {
-        'id': 'em_dash',
-        'label': 'NIGDY em-dash vs zawiera em-dash',
-        'patterns_a': [r'nigdy\s+myślnika?\s+em', r'zero\s+em-?dash', r'NIGDY.*\(—\)'],
-        'patterns_b': [],
-        'check_em_dash_present': True,
-    },
-    {
-        'id': 'always_ask',
-        'label': 'Nigdy nie pytaj vs lista akcji wymagajacych pytania',
-        'patterns_a': [r'nigdy\s+nie\s+pytaj', r'staly\s+yes', r'stałe\s+yes', r'bez\s+pytania'],
-        'patterns_b': [r'wymagają\s+zapytania', r'pytam.*tylko\s+gdy', r'pytaj.*pinky'],
-    },
-    {
-        'id': 'lite_version',
-        'label': 'Nigdy lite vs MVP/preview',
-        'patterns_a': [r'nigdy.*lite', r'zero\s+skrótów', r'na\s+maksa'],
-        'patterns_b': [r'\bMVP\b', r'lite\s+version', r'preview\s+version'],
-    },
-    {
-        'id': 'autonomy_vs_options',
-        'label': 'Decyzje same vs 3-4 opcje przed decyzja',
-        'patterns_a': [r'decyduj.*samodzieln', r'autonomi.*działać', r'decyzje\s+same'],
-        'patterns_b': [r'3-4\s+opcj', r'czeka.*wybór', r'czekaj\s+na\s+mój\s+wybór'],
-    },
-    {
-        'id': 'no_paid_apis',
-        'label': 'Zero placonych API vs InvoiceFlow Stripe / OpenRouter',
-        'patterns_a': [r'zero\s+dodatkowych\s+płatnych', r'nie\s+proponuj.*api'],
-        'patterns_b': [r'openrouter.*key', r'glm-5\.1.*openrouter', r'higgsfield'],
-    },
-    {
-        'id': 'desktop_folder',
-        'label': 'Apps Cloude folder vs sandbox/desktop',
-        'patterns_a': [r'desktop/apps\s+cloude', r'pulpit\s+ma\s+zostać\s+czysty'],
-        'patterns_b': [r'desktop/claude-sandbox', r'desktop/ai_studio'],
-    },
+    {'id':'stripe_vs_mollie','label':'Stripe vs Mollie (NL)',
+     'a':[r'\bnigdy\s+stripe\b', r'mollie\s+nie\s+stripe', r'\bMollie\s+\(primary'],
+     'b':[r'invoiceflow.*stripe', r'stripe\s+€\d+', r'using\s+stripe']},
+    {'id':'em_dash','label':'NIGDY em-dash vs zawiera em-dash',
+     'a':[r'nigdy\s+myślnika?\s+em', r'zero\s+em-?dash', r'NIGDY.*\(—\)'],
+     'b':[],'check_em_dash_present':True},
+    {'id':'always_ask','label':'Nigdy nie pytaj vs lista akcji wymagajacych pytania',
+     'a':[r'nigdy\s+nie\s+pytaj', r'staly\s+yes', r'stałe\s+yes', r'bez\s+pytania'],
+     'b':[r'wymagają\s+zapytania', r'pytam.*tylko\s+gdy', r'pytaj.*pinky']},
+    {'id':'lite_version','label':'Nigdy lite vs MVP/preview',
+     'a':[r'nigdy.*lite', r'zero\s+skrótów', r'na\s+maksa'],
+     'b':[r'\bMVP\b', r'lite\s+version', r'preview\s+version']},
+    {'id':'autonomy_vs_options','label':'Decyzje same vs 3-4 opcje przed decyzja',
+     'a':[r'decyduj.*samodzieln', r'autonomi.*działać', r'decyzje\s+same'],
+     'b':[r'3-4\s+opcj', r'czeka.*wybór', r'czekaj\s+na\s+mój\s+wybór']},
+    {'id':'no_paid_apis','label':'Zero placonych API vs InvoiceFlow Stripe / OpenRouter',
+     'a':[r'zero\s+dodatkowych\s+płatnych', r'nie\s+proponuj.*api'],
+     'b':[r'openrouter.*key', r'glm-5\.1.*openrouter', r'higgsfield']},
+    {'id':'desktop_folder','label':'Apps Cloude folder vs sandbox/desktop',
+     'a':[r'desktop/apps\s+cloude', r'pulpit\s+ma\s+zostać\s+czysty'],
+     'b':[r'desktop/claude-sandbox', r'desktop/ai_studio']},
+    {'id':'comments_default','label':'Default no comments vs Komentarze EN',
+     'a':[r'no\s+comments', r'default.*no\s+comments', r'don\'t\s+write\s+comments'],
+     'b':[r'komentarze.*po\s+angielsku', r'comments\s+in\s+english']},
+    {'id':'language','label':'Polski zawsze vs raporty po angielsku',
+     'a':[r'polski\s+zawsze', r'zawsze\s+po\s+polsku'],
+     'b':[r'raport.*english', r'report.*english']},
 ]
 
-def check_conflicts(content_lower, raw_content):
-    found = []
-    for rule in CONFLICT_RULES:
-        a_match = any(re.search(p, content_lower, re.I) for p in rule['patterns_a'])
-        b_match = any(re.search(p, content_lower, re.I) for p in rule['patterns_b']) if rule['patterns_b'] else False
-        if rule.get('check_em_dash_present'):
-            if a_match and ('—' in raw_content):
-                found.append({'rule_id': rule['id'], 'label': rule['label'], 'kind': 'self'})
-                continue
-        if a_match and b_match:
-            found.append({'rule_id': rule['id'], 'label': rule['label'], 'kind': 'self'})
-        elif a_match:
-            found.append({'rule_id': rule['id'], 'label': rule['label'], 'kind': 'side_a'})
-        elif b_match:
-            found.append({'rule_id': rule['id'], 'label': rule['label'], 'kind': 'side_b'})
-    return found
-
-# Cross-section conflicts: side_a in section X + side_b in section Y
 cross_conflicts = defaultdict(list)
 section_sides = []
-for i, s in enumerate(merged):
+for i, s in enumerate(final):
     cl = s['content'].lower()
     sides = []
     for rule in CONFLICT_RULES:
-        a = any(re.search(p, cl, re.I) for p in rule['patterns_a'])
-        b = any(re.search(p, cl, re.I) for p in rule['patterns_b']) if rule['patterns_b'] else False
+        a = any(re.search(p, cl, re.I) for p in rule['a'])
+        b = any(re.search(p, cl, re.I) for p in rule['b']) if rule['b'] else False
         if rule.get('check_em_dash_present') and a and '—' in s['content']:
-            cross_conflicts[i].append({'rule_id': rule['id'], 'label': rule['label'],
-                                        'with': i, 'note': 'em-dash w tej samej sekcji'})
+            cross_conflicts[i].append({'rule_id':rule['id'],'label':rule['label'],
+                                        'with':i,'note':'em-dash w tej samej sekcji'})
         if a and b:
-            cross_conflicts[i].append({'rule_id': rule['id'], 'label': rule['label'],
-                                        'with': i, 'note': 'wewnątrz sekcji'})
-        sides.append({'a': a, 'b': b})
+            cross_conflicts[i].append({'rule_id':rule['id'],'label':rule['label'],
+                                        'with':i,'note':'wewnątrz sekcji'})
+        sides.append({'a':a,'b':b})
     section_sides.append(sides)
 
 for i, sa in enumerate(section_sides):
     for j, sb in enumerate(section_sides):
-        if i == j:
-            continue
+        if i == j: continue
         for ri, rule in enumerate(CONFLICT_RULES):
-            if rule.get('check_em_dash_present'):
-                continue
+            if rule.get('check_em_dash_present'): continue
             if sa[ri]['a'] and sb[ri]['b']:
-                cross_conflicts[i].append({'rule_id': rule['id'], 'label': rule['label'],
-                                            'with': j, 'note': f'kolizja z sekcja #{j+1}'})
+                cross_conflicts[i].append({'rule_id':rule['id'],'label':rule['label'],
+                                            'with':j,'note':f'kolizja z sekcja #{j+1}'})
+
+# RULES DETECTION (special: "NIGDY X" / "ZAWSZE Y" / "OBOWIĄZKOWO" patterns)
+rules_per_section = defaultdict(list)
+RULE_RX = re.compile(
+    r'(?:^|\n)\s*[-*]?\s*(?:[A-ZĄĆĘŁŃÓŚŹŻ]{2,}[\s,:.!]+){1,3}.{10,160}',
+    re.UNICODE
+)
+strong_words = ['NIGDY', 'ZAWSZE', 'OBOWIĄZKOWO', 'TWARDA REGUŁA', 'BEZWZGLĘDNE',
+                 'KAŻDA', 'KAŻDY', 'WYMAGA', 'MUSI', 'TYLKO']
+for i, s in enumerate(final):
+    for line in s['content'].split('\n'):
+        clean = line.strip(' -*•').strip()
+        if any(w in clean for w in strong_words) and 20 < len(clean) < 200:
+            rules_per_section[i].append(clean[:180])
+
+# Skills inventory
+skills = []
+if os.path.isdir(SKILLS_DIR):
+    for d in sorted(os.listdir(SKILLS_DIR)):
+        skill_md = os.path.join(SKILLS_DIR, d, 'SKILL.md')
+        if not os.path.isfile(skill_md):
+            continue
+        try:
+            with open(skill_md, 'r', encoding='utf-8') as f:
+                content = f.read(2000)
+            desc_match = re.search(r'^description:\s*(.+?)$', content, re.M)
+            desc = desc_match.group(1).strip() if desc_match else ''
+            desc = desc.split('. ')[0]
+            if len(desc) > 200:
+                desc = desc[:200] + '...'
+            skills.append({'name': d, 'description': desc})
+        except Exception:
+            pass
 
 # Build output
 out_sections = []
-for i, s in enumerate(merged):
+for i, s in enumerate(final):
     action = classify(s)
     out_sections.append({
         'id': i,
@@ -299,21 +300,27 @@ for i, s in enumerate(merged):
         'suggested_filename': filename_for(s) if action == 'move' else '',
         'duplicates': duplicates.get(i, []),
         'conflicts': cross_conflicts.get(i, []),
+        'rules': rules_per_section.get(i, [])[:8],
+        'merged_from': s.get('merged_from'),
     })
 
 stats = {
-    'total_chars': total,
+    'total_chars': total_chars,
+    'total_bytes': total_bytes,
+    'total_lines': total_lines,
     'section_count': len(out_sections),
-    'keep_count': sum(1 for s in out_sections if s['suggested_action'] == 'keep'),
-    'move_count': sum(1 for s in out_sections if s['suggested_action'] == 'move'),
+    'keep_count': sum(1 for s in out_sections if s['suggested_action']=='keep'),
+    'move_count': sum(1 for s in out_sections if s['suggested_action']=='move'),
     'delete_count': 0,
-    'keep_chars': sum(s['chars'] for s in out_sections if s['suggested_action'] == 'keep'),
-    'move_chars': sum(s['chars'] for s in out_sections if s['suggested_action'] == 'move'),
+    'keep_chars': sum(s['chars'] for s in out_sections if s['suggested_action']=='keep'),
+    'move_chars': sum(s['chars'] for s in out_sections if s['suggested_action']=='move'),
     'duplicate_pairs': sum(len(d) for d in duplicates.values()) // 2,
     'conflict_count': sum(len(c) for c in cross_conflicts.values()),
+    'rules_count': sum(len(r) for r in rules_per_section.values()),
+    'skills_available': len(skills),
 }
 
 with open(OUT, 'w', encoding='utf-8') as f:
-    json.dump({'stats': stats, 'sections': out_sections}, f, ensure_ascii=False)
+    json.dump({'stats': stats, 'sections': out_sections, 'skills': skills}, f, ensure_ascii=False)
 
 print(json.dumps(stats, ensure_ascii=False, indent=2))

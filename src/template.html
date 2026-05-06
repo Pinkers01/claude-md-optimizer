@@ -237,6 +237,81 @@ footer.bottom {
   line-height: 1.4; min-width: 180px;
 }
 .brand .gold { color: var(--gold); font-weight: 600; }
+.btn-mini.btn-skills { color: var(--gold); border-color: rgba(196,162,76,0.4); }
+.btn-mini.btn-skills:hover { background: rgba(196,162,76,0.12); }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(8,8,16,0.92);
+  display: none; align-items: center; justify-content: center;
+  z-index: 800; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.modal-overlay.show { display: flex; }
+.modal-card {
+  background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: 14px; padding: 24px; max-width: 720px; width: 92%;
+  max-height: 82vh; overflow: auto;
+}
+.modal-card h2 { margin: 0 0 4px; font-size: 17px; }
+.modal-card .modal-sub { color: var(--muted); font-size: 12px; margin-bottom: 16px; }
+.modal-card .row-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.skill-item {
+  display: flex; gap: 10px; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--border); margin-bottom: 6px;
+  cursor: pointer; transition: border-color 0.12s, background 0.12s;
+}
+.skill-item:hover { border-color: var(--accent); background: var(--surface-2); }
+.skill-item.checked { border-color: var(--gold); background: rgba(196,162,76,0.08); }
+.skill-item input { margin-top: 3px; accent-color: var(--gold); }
+.skill-item .si-body { flex: 1; min-width: 0; }
+.skill-item .si-name { font-weight: 600; font-size: 12px; color: var(--text); }
+.skill-item .si-desc { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+.rules-row {
+  margin: 6px 0 8px; padding: 8px 10px;
+  background: rgba(108,99,255,0.06); border-left: 2px solid var(--accent);
+  border-radius: 6px;
+}
+.rules-row .rules-head { font-size: 10px; color: var(--accent); font-weight: 600; letter-spacing: 0.04em; }
+.rules-row ul { margin: 4px 0 0 16px; padding: 0; }
+.rules-row li { font-size: 11px; color: var(--text); line-height: 1.4; margin-bottom: 2px; }
+.rules-row li b { color: var(--gold); }
+
+.pcs-floating {
+  position: fixed; bottom: 90px; right: 24px;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--gold));
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 90;
+  box-shadow: 0 4px 14px rgba(108,99,255,0.35);
+  font-size: 12px; font-weight: 700; color: white;
+  letter-spacing: -0.04em;
+  transition: transform 0.2s, box-shadow 0.2s;
+  user-select: none;
+}
+.pcs-floating:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(108,99,255,0.5); }
+.pcs-floating::after {
+  content: 'PCS';
+}
+.pcs-overlay {
+  position: fixed; inset: 0; display: none;
+  align-items: center; justify-content: center;
+  background: radial-gradient(circle at 70% 30%, rgba(108,99,255,0.4), rgba(8,8,16,0.95) 70%);
+  z-index: 900; backdrop-filter: blur(10px);
+  font-family: ui-monospace, "SF Mono", monospace;
+}
+.pcs-overlay.show { display: flex; animation: fadeIn 0.4s; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.pcs-easter {
+  text-align: center; color: var(--text); max-width: 480px; padding: 24px;
+}
+.pcs-easter pre {
+  color: var(--gold); font-size: 9px; line-height: 1.2; margin: 0 0 16px;
+}
+.pcs-easter h3 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
+.pcs-easter p { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 6px 0; }
+.pcs-easter a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.pcs-easter .close-hint { margin-top: 14px; font-size: 10px; color: var(--muted); }
+
 
 .nocturnal-badge {
   position: fixed; top: 12px; right: 12px;
@@ -293,6 +368,7 @@ footer.bottom {
     <div class="actions-global">
       <button class="btn-mini" id="btnExpandAll" title="Rozwin wszystkie / Expand all / Alle uitvouwen">Rozwin wszystkie</button>
       <button class="btn-mini" id="btnCollapseAll" title="Zwin wszystkie / Collapse all / Alle inklappen">Zwin wszystkie</button>
+      <button class="btn-mini btn-skills" id="btnSkills" title="Wstaw skille / Insert skills / Skills toevoegen">Skille (25)</button>
       <button class="btn-mini" id="btnReset" title="Reset suggestions / Reset suggesties">Reset sugestii</button>
     </div>
   </div>
@@ -758,5 +834,37 @@ if (new URLSearchParams(location.search).get('pinky') === '1') {
   document.getElementById('nocturnalBadge').style.display = 'block';
 }
 </script>
+
+<div class="modal-overlay" id="skillsModal">
+  <div class="modal-card">
+    <h2>Skille Claude Code <span style="color:var(--gold);font-weight:400;font-size:12px">(<span id="skillsCount">0</span>)</span></h2>
+    <div class="modal-sub">Zaznacz skille ktore chcesz wpisac do nowego CLAUDE.md jako sekcje "Aktywne skille". Stamtad twoja przyszla sesja Claude widzi je od razu.</div>
+    <div id="skillsList"></div>
+    <div class="row-actions">
+      <button class="btn-mini" id="skillsClose">Anuluj</button>
+      <button class="btn-mini" id="skillsSelectAll">Zaznacz wszystkie</button>
+      <button class="btn-mini btn-skills" id="skillsApply">Wstaw do CLAUDE.md</button>
+    </div>
+  </div>
+</div>
+
+<div class="pcs-floating" id="pcsLogo" title="Pinky Creative Studio - klik 5 razy"></div>
+<div class="pcs-overlay" id="pcsOverlay">
+  <div class="pcs-easter">
+    <pre>
+       _____  _____  _____
+      |  _  ||     ||   __|
+      |   __||   --||__   |
+      |__|   |_____||_____|
+    </pre>
+    <h3>Pinky Creative Studio</h3>
+    <p>Zbudowane z miloscia w Den Bosch.</p>
+    <p>Kazda apka ktora widzisz ma w sobie kawalek tej samej DNA: dark mode, easter eggi, multilang, mobile-safe, zero em-dash.</p>
+    <p>Wpadnij na <a href="https://stopmetzoeken.store" target="_blank" rel="noopener">stopmetzoeken.store</a></p>
+    <p style="color:var(--gold);margin-top:14px;font-size:11px">"Memory > monolith."</p>
+    <div class="close-hint">Kliknij gdziekolwiek aby zamknac</div>
+  </div>
+</div>
+
 </body>
 </html>
