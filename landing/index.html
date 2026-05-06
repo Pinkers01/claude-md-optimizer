@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080810">
+<meta name="color-scheme" content="dark">
+
+<title data-i18n="meta_title">CLAUDE.md Optimizer · 9 EUR lifetime · Pinky Creative Studio</title>
+<meta name="description" data-i18n-attr="content:meta_desc" content="Trim your CLAUDE.md from 70k to 35k chars. Detects duplicates and rule conflicts. 100% in your browser.">
+<meta name="keywords" data-i18n-attr="content:meta_keywords" content="CLAUDE.md, Claude Code, AI prompt optimizer, AI rules, agent memory">
+<meta name="author" content="Pinky Creative Studio">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://stopmetzoeken.store/apps/optimizer/">
+
+<!-- Hreflang -->
+<link rel="alternate" hreflang="nl" href="https://stopmetzoeken.store/apps/optimizer/?lang=nl">
+<link rel="alternate" hreflang="pl" href="https://stopmetzoeken.store/apps/optimizer/?lang=pl">
+<link rel="alternate" hreflang="en" href="https://stopmetzoeken.store/apps/optimizer/?lang=en">
+<link rel="alternate" hreflang="x-default" href="https://stopmetzoeken.store/apps/optimizer/">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Pinky Creative Studio">
+<meta property="og:url" content="https://stopmetzoeken.store/apps/optimizer/">
+<meta property="og:title" data-i18n-attr="content:og_title" content="Memory > monolith. Trim your CLAUDE.md.">
+<meta property="og:description" data-i18n-attr="content:og_desc" content="Local optimizer for CLAUDE.md. Detects duplicates and conflicts. 9 EUR forever.">
+<meta property="og:image" content="https://stopmetzoeken.store/apps/optimizer/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="CLAUDE.md Optimizer · Memory greater than monolith">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" data-i18n-attr="content:og_title" content="Memory > monolith. Trim your CLAUDE.md.">
+<meta name="twitter:description" data-i18n-attr="content:og_desc" content="Local optimizer for CLAUDE.md. Detects duplicates and conflicts. 9 EUR forever.">
+<meta name="twitter:image" content="https://stopmetzoeken.store/apps/optimizer/assets/og-image.png">
+
+<!-- Icons -->
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="assets/manifest.json">
+
+<!-- Preload key assets -->
+<link rel="preload" href="i18n.json" as="fetch" type="application/json" crossorigin>
+
+<link rel="stylesheet" href="style.css">
+
+<!-- JSON-LD: Organization + SoftwareApplication -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://stopmetzoeken.store/#org",
+      "name": "Pinky Creative Studio",
+      "url": "https://stopmetzoeken.store",
+      "email": "klantenservice@stopmetzoeken.store",
+      "telephone": "+31638909416",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Troelstradreef 72",
+        "postalCode": "5237 VJ",
+        "addressLocality": "Den Bosch",
+        "addressCountry": "NL"
+      },
+      "vatID": "NL.....B..",
+      "taxID": "94794867"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "CLAUDE.md Optimizer",
+      "operatingSystem": "macOS, Windows, Web",
+      "applicationCategory": "DeveloperApplication",
+      "description": "Local optimizer for CLAUDE.md instruction files. Splits oversized files, detects duplicates and rule conflicts, exports a slim master plus memory tree.",
+      "url": "https://stopmetzoeken.store/apps/optimizer/",
+      "offers": {
+        "@type": "Offer",
+        "price": "9",
+        "priceCurrency": "EUR",
+        "availability": "https://schema.org/InStock"
+      },
+      "creator": { "@id": "https://stopmetzoeken.store/#org" },
+      "softwareVersion": "1.0.0"
+    },
+    {
+      "@type": "WebSite",
+      "name": "CLAUDE.md Optimizer",
+      "url": "https://stopmetzoeken.store/apps/optimizer/",
+      "publisher": { "@id": "https://stopmetzoeken.store/#org" }
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<canvas id="bg-canvas" aria-hidden="true"></canvas>
+
+<div class="shell">
+
+  <!-- ========== HEADER ========== -->
+  <header class="site-header">
+    <div class="wrap nav">
+      <a href="#" class="brand" aria-label="CLAUDE.md Optimizer · Pinky Creative Studio">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 6h16M4 12h10M4 18h7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+            <circle cx="19" cy="18" r="2.2" fill="#E5C97A"/>
+          </svg>
+        </span>
+        <span class="brand-name">CLAUDE<b>.md</b> · OPTIMIZER</span>
+      </a>
+
+      <nav class="nav-links" aria-label="primary">
+        <a href="#features" data-i18n="nav_features">Features</a>
+        <a href="#how" data-i18n="nav_how">How it works</a>
+        <a href="#demo" data-i18n="nav_demo">Demo</a>
+        <a href="#pricing" data-i18n="nav_pricing">Pricing</a>
+        <a href="#faq" data-i18n="nav_faq">FAQ</a>
+
+        <div class="lang-switch">
+          <button class="lang-btn" type="button" aria-haspopup="true" aria-label="Language">
+            <svg class="globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/>
+            </svg>
+            <span class="lang-cur">NL</span>
+          </button>
+          <div class="lang-menu" role="menu">
+            <button class="lang-opt" data-lang="nl"><span class="flag">🇳🇱</span> Nederlands</button>
+            <button class="lang-opt" data-lang="pl"><span class="flag">🇵🇱</span> Polski</button>
+            <button class="lang-opt" data-lang="en"><span class="flag">🇬🇧</span> English</button>
+          </div>
+        </div>
+
+        <a href="#pricing" class="nav-cta" data-i18n="nav_buy">Buy now</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ========== HERO ========== -->
+    <section class="hero">
+      <div class="wrap">
+        <span class="kicker reveal">
+          <span class="dot"></span>
+          <span data-i18n="hero_kicker">For Claude Code power users</span>
+        </span>
+
+        <h1 class="reveal reveal-delay-1">
+          <span data-i18n="hero_h1_a">Memory</span>
+          <span class="gt" data-i18n="hero_h1_c">&gt;</span>
+          <span class="accent" data-i18n="hero_h1_b">monolith</span>.
+        </h1>
+
+        <p class="sub reveal reveal-delay-2" data-i18n="hero_sub">
+          Your CLAUDE.md grows every session. Past 40,000 chars the agent slows down. Split it into a slim master plus a memory tree, in a browser, with zero telemetry.
+        </p>
+
+        <div class="hero-cta reveal reveal-delay-3">
+          <button class="btn btn-primary" data-buy>
+            <span data-i18n="hero_cta_primary">Buy for 9 EUR</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+              <path d="M5 12h14M13 6l6 6-6 6"/>
+            </svg>
+          </button>
+          <a href="#demo" class="btn btn-ghost" data-i18n="hero_cta_secondary">See demo</a>
+        </div>
+
+        <div class="hero-badges reveal reveal-delay-4">
+          <span class="hero-badge"><span class="check">●</span> <span data-i18n="hero_badge_local">100% local</span></span>
+          <span class="hero-badge"><span class="check">●</span> <span data-i18n="hero_badge_zero">Zero telemetry</span></span>
+          <span class="hero-badge"><span class="check">●</span> <span data-i18n="hero_badge_open">MIT source</span></span>
+        </div>
+
+        <!-- Counter card -->
+        <div class="hero-counter reveal reveal-delay-5">
+          <div class="hc-block from">
+            <div class="hc-label">CLAUDE.md · before</div>
+            <div class="hc-num from">0</div>
+            <div class="hc-unit" data-i18n="hero_counter_unit">chars</div>
+          </div>
+          <div class="hc-arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+              <path d="M5 12h14M13 6l6 6-6 6"/>
+            </svg>
+          </div>
+          <div class="hc-block to">
+            <div class="hc-label">CLAUDE.md · after</div>
+            <div class="hc-num to">0</div>
+            <div class="hc-unit" data-i18n="hero_counter_unit">chars</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PROBLEM ========== -->
+    <section class="section problem" id="problem">
+      <div class="wrap">
+        <span class="label-kicker reveal" data-i18n="problem_kicker">The problem</span>
+        <h2 class="reveal reveal-delay-1" data-i18n="problem_h2">A CLAUDE.md is alive, and it bloats.</h2>
+        <p class="lead reveal reveal-delay-2" data-i18n="problem_p1">Every Claude Code session adds a rule. Preferences, anti patterns, fixes. After six months your file hits 70,000 characters.</p>
+        <p class="lead reveal reveal-delay-2" data-i18n="problem_p2">Above 40k you feel it. The agent thinks slower, forgets recent rules, finds two contradicting instructions and picks the wrong one.</p>
+
+        <div class="problem-grid">
+          <article class="problem-card reveal">
+            <div class="pc-num">01 · DRIFT</div>
+            <h3 data-i18n="problem_card1_h">Slow agent</h3>
+            <p data-i18n="problem_card1_p">Past 40k chars context retention drops. Tasks take longer, burn more tokens.</p>
+            <div class="pc-graph"></div>
+          </article>
+          <article class="problem-card reveal reveal-delay-1">
+            <div class="pc-num">02 · CONFLICT</div>
+            <h3 data-i18n="problem_card2_h">Silent conflicts</h3>
+            <p data-i18n="problem_card2_p">Stripe vs Mollie, autonomy vs always ask, em dash policy, lite vs full mode. Contradictions stack up.</p>
+            <div class="pc-graph"></div>
+          </article>
+          <article class="problem-card reveal reveal-delay-2">
+            <div class="pc-num">03 · NOISE</div>
+            <h3 data-i18n="problem_card3_h">Duplicates</h3>
+            <p data-i18n="problem_card3_p">The same rule lands three times. Early sessions, repeats during incidents, copies without cleanup.</p>
+            <div class="pc-graph"></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== SOLUTION ========== -->
+    <section class="section solution" id="solution">
+      <div class="wrap">
+        <div class="solution-flex">
+          <div>
+            <span class="label-kicker reveal" data-i18n="solution_kicker">The solution</span>
+            <h2 class="reveal reveal-delay-1" data-i18n="solution_h2">One click. Slim master plus memory tree.</h2>
+            <p class="lead reveal reveal-delay-2" data-i18n="solution_p">The optimizer reads your CLAUDE.md, splits into sections, flags duplicates and conflicts. Per section you choose keep, move to memory, or delete. Output is a ZIP with your new CLAUDE.md plus memory files.</p>
+            <ul class="solution-list reveal reveal-delay-3">
+              <li>
+                <span class="check-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg></span>
+                <span data-i18n="solution_b1">Section level keep, move, delete</span>
+              </li>
+              <li>
+                <span class="check-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg></span>
+                <span data-i18n="solution_b2">Live counter with 35k target</span>
+              </li>
+              <li>
+                <span class="check-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg></span>
+                <span data-i18n="solution_b3">Conflict and duplicate detection</span>
+              </li>
+              <li>
+                <span class="check-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg></span>
+                <span data-i18n="solution_b4">Search and filter</span>
+              </li>
+              <li>
+                <span class="check-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg></span>
+                <span data-i18n="solution_b5">Edit, shrink, revert per section</span>
+              </li>
+              <li>
+                <span class="check-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg></span>
+                <span data-i18n="solution_b6">ZIP export with report</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="solution-graphic reveal reveal-delay-2" aria-hidden="true">
+            <div class="sg-body">
+              <div class="sg-line"><span class="ln">01</span><span class="tk com"># CLAUDE.md</span></div>
+              <div class="sg-line"><span class="ln">02</span><span class="tk com"># Pinky Creative Studio</span></div>
+              <div class="sg-line"><span class="ln">03</span><span class="tk"> </span></div>
+              <div class="sg-line"><span class="ln">04</span><span class="tk kw">## STACK</span></div>
+              <div class="sg-line"><span class="ln">05</span><span class="tk">Payments: </span><span class="tk str">Mollie</span></div>
+              <div class="sg-line"><span class="ln">06</span><span class="tk flag">⚠ conflict: STRIPE in line 142</span></div>
+              <div class="sg-line"><span class="ln">07</span><span class="tk"> </span></div>
+              <div class="sg-line"><span class="ln">08</span><span class="tk kw">## RULES</span></div>
+              <div class="sg-line"><span class="ln">09</span><span class="tk com"># dup of L211 →</span> <span class="tk str">memory/</span></div>
+              <div class="sg-line"><span class="ln">10</span><span class="tk">No em dash in copy</span></div>
+              <div class="sg-line"><span class="ln">11</span><span class="tk com"># keep · 35.142 chars</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== DEMO ========== -->
+    <section class="section demo" id="demo">
+      <div class="wrap">
+        <span class="label-kicker reveal" data-i18n="demo_kicker">Interactive demo</span>
+        <h2 class="reveal reveal-delay-1" data-i18n="demo_h2">Here is what it looks like.</h2>
+        <p class="lead reveal reveal-delay-2" data-i18n="demo_p">Three screenshots of the optimizer in action. Full UI on the left, conflict flag in the middle, hover state on the right.</p>
+
+        <div class="demo-grid">
+          <figure class="demo-card reveal">
+            <div class="demo-img">
+              <img src="assets/screenshots/optimizer-hero.png" alt="CLAUDE.md Optimizer main view with live counter and section cards" loading="lazy">
+            </div>
+            <figcaption class="demo-cap">
+              <span class="num">01</span>
+              <span data-i18n="demo_cap1">Main view. Live counter, filter, section cards.</span>
+            </figcaption>
+          </figure>
+
+          <figure class="demo-card reveal reveal-delay-1">
+            <div class="demo-img">
+              <img src="assets/screenshots/optimizer-conflict.png" alt="Conflict flag detail showing four colliding rule pairs" loading="lazy">
+            </div>
+            <figcaption class="demo-cap">
+              <span class="num">02</span>
+              <span data-i18n="demo_cap2">Conflict flag on a section. Four rule pairs colliding.</span>
+            </figcaption>
+          </figure>
+
+          <figure class="demo-card reveal reveal-delay-2">
+            <div class="demo-img">
+              <img src="assets/screenshots/optimizer-full.png" alt="Full optimizer UI with all sections expanded" loading="lazy" style="object-position:top;">
+            </div>
+            <figcaption class="demo-cap">
+              <span class="num">03</span>
+              <span data-i18n="demo_cap3">Hover state on a section. Edit, shrink 50 percent, revert.</span>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== FEATURES ========== -->
+    <section class="section features" id="features">
+      <div class="wrap">
+        <span class="label-kicker reveal" data-i18n="features_kicker">Features</span>
+        <h2 class="reveal reveal-delay-1" data-i18n="features_h2">What you get for 9 EUR.</h2>
+
+        <div class="features-grid" style="margin-top:50px">
+
+          <article class="feature reveal">
+            <div class="icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <h3 data-i18n="feat1_h">100 percent local</h3>
+            <p data-i18n="feat1_p">All processing in the browser. Your CLAUDE.md never leaves your computer. No telemetry, no analytics, no tracking.</p>
+          </article>
+
+          <article class="feature reveal reveal-delay-1">
+            <div class="icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M5 19l3-3M16 8l3-3"/></svg>
+            </div>
+            <h3 data-i18n="feat2_h">Conflict detection</h3>
+            <p data-i18n="feat2_p">Flags six classic rule pairs that collide: payments, em dash, autonomy, lite vs full, paid API, hosting folder.</p>
+          </article>
+
+          <article class="feature reveal reveal-delay-2">
+            <div class="icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>
+            </div>
+            <h3 data-i18n="feat3_h">Duplicate scan</h3>
+            <p data-i18n="feat3_p">Compares at line level and key phrase level. Marks duplicate sections so you decide.</p>
+          </article>
+
+          <article class="feature reveal">
+            <div class="icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20l9-7-9-7-9 7 9 7zM12 20v-7"/></svg>
+            </div>
+            <h3 data-i18n="feat4_h">Per section control</h3>
+            <p data-i18n="feat4_p">Edit, shrink 50 percent, revert to original. Toggle keep, memory, or delete. Live char counter.</p>
+          </article>
+
+          <article class="feature reveal reveal-delay-1">
+            <div class="icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg>
+            </div>
+            <h3 data-i18n="feat5_h">ZIP export</h3>
+            <p data-i18n="feat5_p">Final result is a ZIP with CLAUDE_NEW.md, memory tree, and a markdown report. Unzip and replace.</p>
+          </article>
+
+          <article class="feature reveal reveal-delay-2">
+            <div class="icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg>
+            </div>
+            <h3 data-i18n="feat6_h">PL EN NL</h3>
+            <p data-i18n="feat6_p">Three languages out of the box. Switch via the globe in the header. Preference saved in a cookie.</p>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== HOW IT WORKS ========== -->
+    <section class="section how" id="how">
+      <div class="wrap">
+        <span class="label-kicker reveal" data-i18n="how_kicker">How it works</span>
+        <h2 class="reveal reveal-delay-1" data-i18n="how_h2">Three steps.</h2>
+
+        <div class="how-timeline" style="margin-top:50px">
+          <div class="how-step reveal">
+            <div class="step-num">01</div>
+            <h3 data-i18n="how_step1_h">Drop your CLAUDE.md</h3>
+            <p data-i18n="how_step1_p">Drag the file onto the loader. Or paste the path. Nothing leaves your machine.</p>
+          </div>
+          <div class="how-step reveal reveal-delay-1">
+            <div class="step-num">02</div>
+            <h3 data-i18n="how_step2_h">Review sections</h3>
+            <p data-i18n="how_step2_p">Red badges are conflicts. Orange are duplicates. Per section you click keep, memory, or delete.</p>
+          </div>
+          <div class="how-step reveal reveal-delay-2">
+            <div class="step-num">03</div>
+            <h3 data-i18n="how_step3_h">Generate ZIP</h3>
+            <p data-i18n="how_step3_p">Below 35k chars? Click generate. Unzip, replace your old CLAUDE.md, your memory tree sits next to it.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PRICING ========== -->
+    <section class="section pricing" id="pricing">
+      <div class="wrap">
+        <div style="text-align:center">
+          <span class="label-kicker reveal" style="margin:0 auto" data-i18n="pricing_kicker">Pricing</span>
+        </div>
+        <div style="text-align:center">
+          <h2 class="reveal reveal-delay-1" data-i18n="pricing_h2">One plan. Forever.</h2>
+          <p class="lead reveal reveal-delay-2" style="margin-left:auto;margin-right:auto" data-i18n="pricing_p">One time payment via Mollie. iDEAL, card, Apple Pay, Google Pay. No subscription, no renewal.</p>
+        </div>
+
+        <div class="price-card-wrap">
+          <div class="price-card reveal reveal-delay-3">
+            <div class="ribbon" data-i18n="price_card_h">Lifetime</div>
+            <div class="price">
+              <span class="cur" data-i18n="price_currency">EUR</span>
+              <span class="amount" data-i18n="price_amount">9</span>
+            </div>
+            <div class="once" data-i18n="price_once">one time</div>
+
+            <ul class="benefits">
+              <li data-i18n="price_b1">macOS .app signed</li>
+              <li data-i18n="price_b2">Windows .exe</li>
+              <li data-i18n="price_b3">Standalone HTML</li>
+              <li data-i18n="price_b4">All future updates</li>
+              <li data-i18n="price_b5">MIT source on GitHub</li>
+              <li data-i18n="price_b6">Email support 5 business days</li>
+            </ul>
+
+            <button class="btn btn-primary" data-buy>
+              <span data-i18n="price_cta">Buy for 9 EUR</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                <path d="M5 12h14M13 6l6 6-6 6"/>
+              </svg>
+            </button>
+            <div class="secure" data-i18n="price_secure">Mollie checkout · VAT included · NL company KvK 94794867</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== FAQ ========== -->
+    <section class="section faq" id="faq">
+      <div class="wrap">
+        <span class="label-kicker reveal" data-i18n="faq_kicker">FAQ</span>
+        <h2 class="reveal reveal-delay-1" data-i18n="faq_h2">Frequent questions.</h2>
+
+        <div class="faq-list" style="margin-top:50px">
+          <details class="faq-item reveal">
+            <div class="faq-q"><span data-i18n="faq_q1">Does my CLAUDE.md ever leave my computer?</span><span class="plus">+</span></div>
+            <div class="faq-a" data-i18n="faq_a1">No. Parser, conflict scan, and ZIP generator run fully in your browser.</div>
+          </details>
+          <details class="faq-item reveal">
+            <div class="faq-q"><span data-i18n="faq_q2">Does it work with Claude Sonnet 4.7, Opus 4.7, Haiku?</span><span class="plus">+</span></div>
+            <div class="faq-a" data-i18n="faq_a2">Yes. CLAUDE.md is model agnostic.</div>
+          </details>
+          <details class="faq-item reveal">
+            <div class="faq-q"><span data-i18n="faq_q3">What if my CLAUDE.md is bigger than 100k characters?</span><span class="plus">+</span></div>
+            <div class="faq-a" data-i18n="faq_a3">No problem. Tested with files past 250k.</div>
+          </details>
+          <details class="faq-item reveal">
+            <div class="faq-q"><span data-i18n="faq_q4">Do I get updates?</span><span class="plus">+</span></div>
+            <div class="faq-a" data-i18n="faq_a4">Yes. Lifetime means lifetime.</div>
+          </details>
+          <details class="faq-item reveal">
+            <div class="faq-q"><span data-i18n="faq_q5">Refund policy?</span><span class="plus">+</span></div>
+            <div class="faq-a" data-i18n="faq_a5">30 days money back.</div>
+          </details>
+          <details class="faq-item reveal">
+            <div class="faq-q"><span data-i18n="faq_q6">What is the difference vs the open source GitHub version?</span><span class="plus">+</span></div>
+            <div class="faq-a" data-i18n="faq_a6">GitHub ships parser and HTML source. Hosted has signed builds and support.</div>
+          </details>
+          <details class="faq-item reveal">
+            <div class="faq-q"><span data-i18n="faq_q7">Payment methods?</span><span class="plus">+</span></div>
+            <div class="faq-a" data-i18n="faq_a7">iDEAL, card, Apple Pay, Google Pay, Bancontact, SEPA via Mollie.</div>
+          </details>
+          <details class="faq-item reveal">
+            <div class="faq-q"><span data-i18n="faq_q8">Mobile support?</span><span class="plus">+</span></div>
+            <div class="faq-a" data-i18n="faq_a8">Desktop optimized.</div>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-brand-block">
+          <a href="#" class="brand">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h10M4 18h7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="19" cy="18" r="2.2" fill="#E5C97A"/></svg>
+            </span>
+            <span class="brand-name">CLAUDE<b>.md</b> · OPTIMIZER</span>
+          </a>
+          <p data-i18n="footer_tagline">Premium NL web studio. Built in Den Bosch, hosted in Falkenstein.</p>
+          <p style="margin-top:12px;color:var(--ink-mute);font-family:var(--font-mono);font-size:12px" data-i18n="footer_kvk">KvK 94794867 · BTW NL.....B.. · Den Bosch NL</p>
+        </div>
+
+        <div>
+          <h4 data-i18n="footer_links_product">Product</h4>
+          <ul>
+            <li><a href="#features" data-i18n="nav_features">Features</a></li>
+            <li><a href="#how" data-i18n="nav_how">How it works</a></li>
+            <li><a href="#pricing" data-i18n="nav_pricing">Pricing</a></li>
+            <li><a href="https://github.com/Pinkers01/claude-md-optimizer" rel="noopener" data-i18n="footer_link_github">GitHub</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 data-i18n="footer_links_legal">Legal</h4>
+          <ul>
+            <li><a href="policies/privacy-en.html" data-i18n="footer_link_privacy">Privacy</a></li>
+            <li><a href="policies/terms-en.html" data-i18n="footer_link_terms">Terms</a></li>
+            <li><a href="policies/cookies-en.html" data-i18n="footer_link_cookies">Cookies</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 data-i18n="footer_links_company">Company</h4>
+          <ul>
+            <li><a href="kontakt.html" data-i18n="footer_link_contact">Contact</a></li>
+            <li><a href="https://stopmetzoeken.store" rel="noopener" data-i18n="footer_link_smz">stopmetzoeken.store</a></li>
+            <li><a href="mailto:klantenservice@stopmetzoeken.store">klantenservice@<wbr>stopmetzoeken.store</a></li>
+            <li><a href="tel:+31638909416">+31 6 38 90 94 16</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-avg" data-i18n="footer_avg">
+        Pinky Creative Studio is not liable for damage caused by unsafe user behavior, weak passwords, phishing, or external security risks. We work with STRATO.nl for hosting security.
+      </div>
+
+      <div class="footer-bottom">
+        <div>© 2026 Pinky Creative Studio · Den Bosch NL</div>
+        <div class="powered">
+          <span data-i18n="footer_powered">Powered by Pinky Creative Studio</span> ·
+          <a href="https://stopmetzoeken.store" rel="noopener">stopmetzoeken.store</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========== WhatsApp FAB ========== -->
+  <a class="wa-fab" href="https://wa.me/31638909416?text=Hi%20Pinky%2C%20about%20CLAUDE.md%20Optimizer" rel="noopener" aria-label="WhatsApp">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 3.5A11 11 0 0 0 3.6 17.4L2 22l4.7-1.5A11 11 0 1 0 20.5 3.5zm-8.5 17a9 9 0 0 1-4.6-1.3l-.3-.2-2.8.9.9-2.7-.2-.3A9 9 0 1 1 12 20.5zm5-6.7c-.3-.1-1.6-.8-1.9-.9-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-1.7-.8-2.8-1.5-3.9-3.4-.3-.5.3-.5.8-1.5.1-.2 0-.3 0-.5l-.9-2.1c-.2-.5-.5-.4-.7-.4h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.2.2 2.1 3.3 5.1 4.6 1.9.8 2.7.9 3.6.7.6-.1 1.6-.7 1.9-1.3.2-.7.2-1.2.1-1.3 0-.1-.3-.2-.5-.3z"/></svg>
+    <span class="tip" data-i18n="wa_label">WhatsApp us</span>
+  </a>
+
+  <!-- ========== Cookie banner ========== -->
+  <div class="cookie-banner" role="dialog" aria-live="polite">
+    <h4 data-i18n="cookie_title">Cookies, short and simple</h4>
+    <p data-i18n="cookie_text">Functional we use nothing, zero tracking. Optional Plausible cookie for anonymous stats.</p>
+    <div class="row">
+      <button class="primary" data-cookie-action="all" data-i18n="cookie_accept">Accept all</button>
+      <button data-cookie-action="functional" data-i18n="cookie_only_func">Only functional</button>
+      <a href="policies/cookies-en.html" class="btn-ghost" style="display:inline-flex;align-items:center;padding:9px 16px;color:var(--ink);font-size:13px" data-i18n="cookie_settings">Settings</a>
+    </div>
+  </div>
+
+  <!-- ========== Konami overlay ========== -->
+  <div class="konami" role="dialog" aria-hidden="true">
+    <div class="box">
+      <h2 data-i18n="easter_konami_h">Konami unlocked</h2>
+      <p data-i18n="easter_konami_p">Memory > monolith. You found the cheat code.</p>
+      <div class="code">KONAMI9 → -30%</div>
+      <div>
+        <button data-buy data-coupon="KONAMI9" data-i18n="hero_cta_primary">Buy for 9 EUR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Dev mode badge ========== -->
+  <div class="dev-badge" aria-hidden="true"></div>
+
+  <!-- ========== Night badge ========== -->
+  <div class="night-badge" aria-hidden="true">
+    <span class="moon">🌙</span>
+    <span data-i18n="easter_night_badge">Burning the midnight oil? Pinky too.</span>
+  </div>
+
+</div>
+
+<script src="app.js" defer></script>
+
+</body>
+</html>
+<!--
+  ╔═══════════════════════════════════════════════════════════════════╗
+  ║                                                                   ║
+  ║      ____  _       _                                              ║
+  ║     |  _ \(_)_ __ | | ___   _                                     ║
+  ║     | |_) | | '_ \| |/ / | | |                                    ║
+  ║     |  __/| | | | |   <| |_| |                                    ║
+  ║     |_|   |_|_| |_|_|\_\\__, |                                    ║
+  ║                          |___/                                    ║
+  ║                                                                   ║
+  ║      C L A U D E . m d   ·   O P T I M I Z E R                    ║
+  ║                                                                   ║
+  ║      EN  Built by Pinky Creative Studio in Den Bosch.             ║
+  ║          Memory greater than monolith. Tight rules ship faster.   ║
+  ║                                                                   ║
+  ║      PL  Zbudowane przez Pinky Creative Studio w Den Bosch.       ║
+  ║          Memory wieksze niz monolit. Czyste reguly wygrywaja.     ║
+  ║                                                                   ║
+  ║      NL  Gebouwd door Pinky Creative Studio in Den Bosch.         ║
+  ║          Memory groter dan monolith. Strakke regels winnen.       ║
+  ║                                                                   ║
+  ║      stopmetzoeken.store                                          ║
+  ║      klantenservice@stopmetzoeken.store                           ║
+  ║      +31 6 38 90 94 16                                            ║
+  ║                                                                   ║
+  ║      Try Konami code, or add ?pinky=1 to the URL.                 ║
+  ║                                                                   ║
+  ╚═══════════════════════════════════════════════════════════════════╝
+-->

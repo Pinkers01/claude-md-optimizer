@@ -17,3 +17,7 @@ venv/
 .idea/
 .vscode/
 coverage/
+.pytest_cache/
+packaging/macos/icon.icns
+packaging/macos/icon.png
+packaging/windows/icon.ico

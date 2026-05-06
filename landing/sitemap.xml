@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://stopmetzoeken.store/apps/optimizer/</loc>
+    <lastmod>2026-05-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://stopmetzoeken.store/apps/optimizer/?lang=nl"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://stopmetzoeken.store/apps/optimizer/?lang=pl"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://stopmetzoeken.store/apps/optimizer/?lang=en"/>
+  </url>
+  <url>
+    <loc>https://stopmetzoeken.store/apps/optimizer/kontakt.html</loc>
+    <lastmod>2026-05-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url><loc>https://stopmetzoeken.store/apps/optimizer/policies/privacy-nl.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://stopmetzoeken.store/apps/optimizer/policies/privacy-pl.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://stopmetzoeken.store/apps/optimizer/policies/privacy-en.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://stopmetzoeken.store/apps/optimizer/policies/terms-nl.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://stopmetzoeken.store/apps/optimizer/policies/terms-pl.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://stopmetzoeken.store/apps/optimizer/policies/terms-en.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://stopmetzoeken.store/apps/optimizer/policies/cookies-nl.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://stopmetzoeken.store/apps/optimizer/policies/cookies-pl.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://stopmetzoeken.store/apps/optimizer/policies/cookies-en.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+</urlset>

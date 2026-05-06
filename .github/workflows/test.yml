@@ -1,0 +1,86 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  python:
+    name: Python parser tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: Run pytest
+        run: pytest tests/ -v
+
+  html:
+    name: HTML and JS lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install html5validator
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install html5validator
+
+      - name: Validate optimizer.html
+        run: html5validator --root src/ --match "optimizer.html" --ignore "Element \"meta\" not allowed" || true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: JS syntax sanity check
+        run: |
+          node -e "
+            const fs = require('fs');
+            const html = fs.readFileSync('src/optimizer.html', 'utf8');
+            const matches = [...html.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g)];
+            for (const m of matches) {
+              const code = m[1];
+              try {
+                new Function(code);
+              } catch (err) {
+                console.error('JS syntax error:', err.message);
+                process.exit(1);
+              }
+            }
+            console.log('All ' + matches.length + ' inline script blocks parsed cleanly.');
+          "
+
+  bash:
+    name: Bash script lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck
+        run: |
+          shellcheck packaging/macos/build-app.sh packaging/macos/launcher.sh packaging/windows/build.sh || true

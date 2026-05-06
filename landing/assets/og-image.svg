@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#080810"/>
+      <stop offset="0.5" stop-color="#0F0F1A"/>
+      <stop offset="1" stop-color="#080810"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="600" cy="315" r="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6C63FF" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#6C63FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="violet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#A8A0FF"/>
+      <stop offset="1" stop-color="#6C63FF"/>
+    </linearGradient>
+    <linearGradient id="goldg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E5C97A"/>
+      <stop offset="1" stop-color="#C4A24C"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <g opacity="0.06" stroke="#6C63FF" stroke-width="1">
+    <line x1="0" y1="100" x2="1200" y2="100"/>
+    <line x1="0" y1="200" x2="1200" y2="200"/>
+    <line x1="0" y1="300" x2="1200" y2="300"/>
+    <line x1="0" y1="400" x2="1200" y2="400"/>
+    <line x1="0" y1="500" x2="1200" y2="500"/>
+    <line x1="100" y1="0" x2="100" y2="630"/>
+    <line x1="300" y1="0" x2="300" y2="630"/>
+    <line x1="500" y1="0" x2="500" y2="630"/>
+    <line x1="700" y1="0" x2="700" y2="630"/>
+    <line x1="900" y1="0" x2="900" y2="630"/>
+    <line x1="1100" y1="0" x2="1100" y2="630"/>
+  </g>
+  <text x="80" y="120" font-family="ui-monospace, SF Mono, Menlo, monospace" font-size="22" fill="#C4A24C" letter-spacing="6">PINKY CREATIVE STUDIO</text>
+  <text x="80" y="280" font-family="-apple-system, system-ui, SF Pro Display, sans-serif" font-weight="800" font-size="120" fill="#F0F0FF">Memory</text>
+  <text x="430" y="280" font-family="-apple-system, system-ui, SF Pro Display, sans-serif" font-weight="300" font-size="120" fill="url(#goldg)" font-style="italic">&gt;</text>
+  <text x="510" y="280" font-family="-apple-system, system-ui, SF Pro Display, sans-serif" font-weight="800" font-size="120" fill="url(#violet)">monolith.</text>
+  <text x="80" y="370" font-family="-apple-system, system-ui, SF Pro Display, sans-serif" font-weight="500" font-size="38" fill="#A0A0BF">Trim your CLAUDE.md from 70k to 35k.</text>
+  <text x="80" y="420" font-family="-apple-system, system-ui, SF Pro Display, sans-serif" font-weight="400" font-size="32" fill="#7878A0">Local. Zero telemetry. 9 EUR lifetime.</text>
+  <g transform="translate(80,500)">
+    <rect width="220" height="60" rx="14" fill="#6C63FF"/>
+    <text x="110" y="38" text-anchor="middle" font-family="-apple-system, system-ui, sans-serif" font-weight="600" font-size="22" fill="#FFFFFF">Buy for 9 EUR</text>
+  </g>
+  <g transform="translate(320,500)">
+    <rect width="220" height="60" rx="14" fill="none" stroke="#6C63FF" stroke-width="1.5"/>
+    <text x="110" y="38" text-anchor="middle" font-family="-apple-system, system-ui, sans-serif" font-weight="500" font-size="22" fill="#A8A0FF">See demo</text>
+  </g>
+  <g transform="translate(900, 200)">
+    <rect width="220" height="220" rx="22" fill="#12121A" stroke="#6C63FF" stroke-width="1" stroke-opacity="0.4"/>
+    <text x="20" y="40" font-family="ui-monospace, SF Mono, monospace" font-size="14" fill="#7878A0">CLAUDE.md</text>
+    <text x="20" y="90" font-family="-apple-system, system-ui, sans-serif" font-weight="800" font-size="44" fill="#FF4D6D">70.420</text>
+    <text x="20" y="115" font-family="ui-monospace, SF Mono, monospace" font-size="13" fill="#7878A0">chars before</text>
+    <line x1="20" y1="135" x2="200" y2="135" stroke="#6C63FF" stroke-opacity="0.3"/>
+    <text x="20" y="170" font-family="-apple-system, system-ui, sans-serif" font-weight="800" font-size="44" fill="#5DE8A1">34.812</text>
+    <text x="20" y="195" font-family="ui-monospace, SF Mono, monospace" font-size="13" fill="#7878A0">chars after</text>
+  </g>
+</svg>

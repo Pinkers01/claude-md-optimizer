@@ -1,0 +1,28 @@
+{
+  "name": "claude-md-optimizer-server",
+  "version": "1.0.0",
+  "description": "Express backend for CLAUDE.md Optimizer (9 EUR lifetime). Mollie checkout, license issuance, ZIP download, master-admin auto-registration.",
+  "author": "Pinky Creative Studio",
+  "license": "PROPRIETARY",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "init-db": "node lib/init-db.js",
+    "test-license": "node lib/test-license.js"
+  },
+  "dependencies": {
+    "@mollie/api-client": "^4.3.0",
+    "better-sqlite3": "^11.0.0",
+    "compression": "^1.7.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^8.0.0",
+    "nodemailer": "^6.9.16"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}
