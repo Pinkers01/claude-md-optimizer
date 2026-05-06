@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLAUDE.md Optimizer · Pinky Creative Studio</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+* { box-sizing: border-box; }
+:root {
+  --bg: #080810;
+  --surface: #12121A;
+  --surface-2: #1A1A24;
+  --border: rgba(255,255,255,0.06);
+  --border-strong: rgba(255,255,255,0.12);
+  --text: #F0F0FF;
+  --muted: #8888A0;
+  --accent: #6C63FF;
+  --accent-soft: rgba(108,99,255,0.12);
+  --warn: #FF4D6D;
+  --warn-soft: rgba(255,77,109,0.13);
+  --warn-strong: rgba(255,77,109,0.25);
+  --ok: #3DDC84;
+  --ok-soft: rgba(61,220,132,0.12);
+  --gold: #C4A24C;
+  --orange: #FFA84C;
+  --orange-soft: rgba(255,168,76,0.14);
+}
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "SF Pro Display", "Segoe UI", sans-serif;
+  margin: 0; padding: 0; font-size: 14px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.app { max-width: 1280px; margin: 0 auto; padding: 0 24px 220px; }
+header.top {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(8,8,16,0.95);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 16px 24px 14px;
+  margin: 0 -24px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.top-row1 { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+.top-row1 h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.top-row1 .sub { color: var(--muted); font-size: 11px; }
+.top-row1 .actions-global {
+  margin-left: auto; display: flex; gap: 6px;
+}
+.btn-mini {
+  background: var(--surface-2); border: 1px solid var(--border-strong);
+  color: var(--text); padding: 5px 10px; border-radius: 6px;
+  font-size: 11px; cursor: pointer; font-family: inherit;
+}
+.btn-mini:hover { border-color: var(--accent); color: var(--accent); }
+.bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.counter { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 16px; }
+.counter .target { color: var(--muted); font-weight: 400; font-size: 12px; }
+.progress {
+  flex: 1; min-width: 180px; height: 6px; background: var(--surface-2);
+  border-radius: 999px; overflow: hidden;
+}
+.progress > div { height: 100%; width: 0%; background: var(--ok); transition: width 0.3s, background 0.3s; }
+.progress.warn > div { background: var(--gold); }
+.progress.over > div { background: var(--warn); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  font-size: 11px; padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--border-strong); font-variant-numeric: tabular-nums;
+}
+.chip.keep { color: var(--ok); background: var(--ok-soft); border-color: transparent; }
+.chip.move { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.chip.delete { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
+.chip.dup { color: var(--orange); background: var(--orange-soft); border-color: transparent; }
+.chip.conf { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
+
+.legend {
+  display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px;
+  color: var(--muted); margin-top: 8px;
+}
+.legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+
+.toolbar-row {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center;
+}
+.toolbar-row label.search-wrap {
+  flex: 1; min-width: 200px; position: relative;
+}
+.toolbar-row input.search {
+  width: 100%; padding: 6px 10px; font-size: 12px;
+  background: var(--surface-2); border: 1px solid var(--border-strong);
+  color: var(--text); border-radius: 6px;
+  font-family: inherit;
+}
+.toolbar-row .filter-group {
+  display: flex; gap: 4px; padding: 2px;
+  background: var(--surface-2); border-radius: 7px;
+  border: 1px solid var(--border);
+}
+.toolbar-row .filter-group button {
+  background: transparent; border: 0; color: var(--muted);
+  padding: 4px 9px; font-size: 11px; border-radius: 5px;
+  cursor: pointer; font-family: inherit;
+}
+.toolbar-row .filter-group button.active {
+  background: var(--bg); color: var(--text);
+}
+
+.section-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 14px;
+  padding: 16px 18px;
+  transition: border-color 0.15s;
+  scroll-margin-top: 140px;
+}
+.section-card:hover { border-color: var(--border-strong); }
+.section-card.act-keep { border-left: 3px solid var(--ok); }
+.section-card.act-move { border-left: 3px solid var(--accent); }
+.section-card.act-delete { border-left: 3px solid var(--warn); opacity: 0.55; }
+.section-card.has-conflict { box-shadow: 0 0 0 1px var(--warn-strong); }
+
+.sc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.sc-num {
+  font-size: 10px; color: var(--muted);
+  background: var(--surface-2); border-radius: 4px;
+  padding: 2px 6px; font-variant-numeric: tabular-nums;
+}
+.sc-level {
+  font-size: 9px; color: var(--muted); border: 1px solid var(--border-strong);
+  padding: 2px 5px; border-radius: 4px;
+}
+.sc-title { font-size: 14px; font-weight: 600; flex: 1; min-width: 220px; }
+.sc-meta { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sc-meta .saved { color: var(--ok); }
+.sc-meta .grew { color: var(--warn); }
+
+.actions { display: flex; gap: 6px; }
+.actions label {
+  display: inline-flex; align-items: center;
+  padding: 5px 10px; font-size: 11px;
+  border: 1px solid var(--border-strong); border-radius: 6px;
+  cursor: pointer; user-select: none;
+  transition: background 0.12s, border-color 0.12s;
+}
+.actions label:hover { background: var(--surface-2); }
+.actions input[type=radio] { display: none; }
+.actions label:has(input[value=keep]:checked) { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.actions label:has(input[value=move]:checked) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.actions label:has(input[value=delete]:checked) { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+
+.flags-row {
+  display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px;
+}
+.flag {
+  font-size: 11px; padding: 3px 9px; border-radius: 6px;
+  display: inline-flex; align-items: center; gap: 5px;
+  cursor: pointer; user-select: none;
+  border: 1px solid transparent;
+}
+.flag.dup {
+  background: var(--orange-soft); color: var(--orange);
+  border-color: rgba(255,168,76,0.4);
+}
+.flag.conf {
+  background: var(--warn-soft); color: var(--warn);
+  border-color: var(--warn-strong);
+}
+.flag .icn { font-size: 10px; }
+.flag .ref { font-weight: 600; font-variant-numeric: tabular-nums; }
+.flag-detail {
+  font-size: 11px; color: var(--muted); margin: 0 0 8px;
+  padding: 8px 10px; background: var(--surface-2); border-radius: 8px;
+  border-left: 2px solid var(--warn); display: none;
+}
+.flag-detail.show { display: block; }
+.flag-detail ul { margin: 4px 0 0 18px; padding: 0; }
+
+.filename-row { margin: 8px 0; display: none; gap: 8px; align-items: center; }
+.section-card.act-move .filename-row { display: flex; }
+.filename-row label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+input[type=text], textarea {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px; padding: 8px 12px;
+  font-family: inherit; font-size: 13px; width: 100%;
+}
+input[type=text]:focus, textarea:focus { outline: none; border-color: var(--accent); }
+textarea {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+  font-size: 12px; line-height: 1.55;
+  resize: vertical; min-height: 280px;
+  white-space: pre;
+}
+textarea.collapsed { min-height: 90px; max-height: 90px; }
+.ta-row { display: flex; flex-direction: column; gap: 6px; }
+.ta-meta {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11px; color: var(--muted); gap: 8px; flex-wrap: wrap;
+}
+.ta-meta .left { display: flex; gap: 8px; align-items: center; }
+.btn-tiny {
+  background: var(--surface-2); border: 1px solid var(--border-strong);
+  color: var(--text); padding: 4px 9px; border-radius: 5px;
+  font-size: 10px; cursor: pointer; font-family: inherit;
+}
+.btn-tiny:hover { border-color: var(--accent); color: var(--accent); }
+.btn-tiny.warn:hover { border-color: var(--warn); color: var(--warn); }
+
+.section-card.hide { display: none; }
+
+footer.bottom {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(8,8,16,0.97);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--border);
+  padding: 12px 24px; z-index: 100;
+}
+.bottom-inner { max-width: 1280px; margin: 0 auto; display: flex; gap: 14px; align-items: flex-end; }
+.bottom-left { flex: 1; }
+.bottom-left label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px; }
+.bottom-left textarea { min-height: 56px; font-family: inherit; font-size: 13px; white-space: normal; }
+.btn-generate {
+  background: var(--accent); color: white;
+  border: 0; padding: 13px 20px; border-radius: 10px;
+  font-weight: 600; font-size: 13px; cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s; white-space: nowrap;
+}
+.btn-generate:hover { transform: translateY(-1px); }
+.btn-generate:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.brand {
+  font-size: 10px; color: var(--muted); text-align: right;
+  line-height: 1.4; min-width: 180px;
+}
+.brand .gold { color: var(--gold); font-weight: 600; }
+
+.nocturnal-badge {
+  position: fixed; top: 12px; right: 12px;
+  background: var(--surface); border: 1px solid var(--gold);
+  color: var(--gold); padding: 4px 10px; border-radius: 999px;
+  font-size: 10px; display: none; z-index: 200;
+}
+.konami-overlay {
+  position: fixed; inset: 0;
+  background: rgba(8,8,16,0.92);
+  display: none; align-items: center; justify-content: center;
+  z-index: 999; backdrop-filter: blur(6px);
+}
+.konami-overlay.show { display: flex; }
+.konami-card {
+  background: var(--surface); border: 1px solid var(--accent);
+  border-radius: 14px; padding: 24px; max-width: 640px; width: 92%;
+  max-height: 80vh; overflow: auto;
+}
+.konami-card h2 { margin: 0 0 6px; font-size: 16px; }
+.konami-card pre {
+  background: var(--bg); border-radius: 8px; padding: 14px;
+  font-size: 11px; line-height: 1.5; overflow: auto; max-height: 50vh;
+}
+.konami-card .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+
+@media (max-width: 720px) {
+  .app { padding: 0 14px 240px; }
+  header.top { padding: 12px 14px; margin: 0 -14px 14px; }
+  .bottom-inner { flex-direction: column; align-items: stretch; }
+  .brand { text-align: left; }
+  textarea { min-height: 200px; }
+}
+</style>
+</head>
+<body>
+<div class="nocturnal-badge" id="nocturnalBadge">nocturnal mode</div>
+<div class="konami-overlay" id="konamiOverlay">
+  <div class="konami-card">
+    <h2>Eksportuj jako emoji <span style="color:var(--muted);font-weight:400;font-size:12px">tooltip: Export with emoji headers</span></h2>
+    <p style="font-size:12px;color:var(--muted)">Podglad nowego CLAUDE.md z dodanymi etykietami w naglowkach. Tylko preview.</p>
+    <pre id="konamiPreview"></pre>
+    <div class="row">
+      <button class="btn-mini" id="konamiClose">Zamknij</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+<header class="top">
+  <div class="top-row1">
+    <h1>CLAUDE.md Optimizer</h1>
+    <span class="sub">Pinky Creative Studio &middot; target ponizej 35 000 znakow</span>
+    <div class="actions-global">
+      <button class="btn-mini" id="btnExpandAll" title="Rozwin wszystkie / Expand all / Alle uitvouwen">Rozwin wszystkie</button>
+      <button class="btn-mini" id="btnCollapseAll" title="Zwin wszystkie / Collapse all / Alle inklappen">Zwin wszystkie</button>
+      <button class="btn-mini" id="btnReset" title="Reset suggestions / Reset suggesties">Reset sugestii</button>
+    </div>
+  </div>
+  <div class="bar">
+    <div class="counter"><span id="liveChars">0</span><span class="target"> / 35 000</span></div>
+    <div class="progress" id="progress"><div></div></div>
+    <div class="chips">
+      <span class="chip keep" title="Keep / Blijft">Zostaje: <span id="cKeep">0</span></span>
+      <span class="chip move" title="Memory / Geheugen">Memory: <span id="cMove">0</span></span>
+      <span class="chip delete" title="Deleted / Verwijderd">Usuniete: <span id="cDel">0</span></span>
+      <span class="chip dup" title="Duplicates flagged / Duplicaten">Duplikaty: <span id="cDup">0</span></span>
+      <span class="chip conf" title="Conflicts flagged / Conflicten">Konflikty: <span id="cConf">0</span></span>
+    </div>
+  </div>
+  <div class="toolbar-row">
+    <label class="search-wrap">
+      <input class="search" id="search" type="text" placeholder="Szukaj w tytulach lub tresci...">
+    </label>
+    <div class="filter-group" id="filterGroup">
+      <button data-f="all" class="active">Wszystkie</button>
+      <button data-f="keep">Zostaje</button>
+      <button data-f="move">Memory</button>
+      <button data-f="delete">Usun</button>
+      <button data-f="dup">Z duplikatami</button>
+      <button data-f="conf">Z konfliktami</button>
+    </div>
+  </div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--ok)"></span>Zostaje (KEEP)</span>
+    <span><span class="dot" style="background:var(--accent)"></span>Memory (przeniesc)</span>
+    <span><span class="dot" style="background:var(--warn)"></span>Usun</span>
+    <span><span class="dot" style="background:var(--orange)"></span>Powtorzenie z inna sekcja</span>
+    <span><span class="dot" style="background:var(--warn)"></span>Sprzecznosc reguly</span>
+  </div>
+</header>
+<main id="sectionsList"></main>
+</div>
+
+<footer class="bottom">
+<div class="bottom-inner">
+  <div class="bottom-left">
+    <label for="newInstr">Dodatkowe nowe instrukcje (opcjonalnie). Trafia do nowego CLAUDE.md.</label>
+    <textarea id="newInstr" placeholder="np. nowe reguly ktore chcesz dorzucic..."></textarea>
+  </div>
+  <button class="btn-generate" id="btnGenerate" disabled title="Generate ZIP / Genereer ZIP">Generuj CLAUDE.md i pliki memory</button>
+  <div class="brand">
+    <div class="gold">Pinky Creative Studio</div>
+    <div>klantenservice@stopmetzoeken.store</div>
+    <div>+31 6 38 90 94 16</div>
+  </div>
+</div>
+</footer>
+
+<script id="data" type="application/json">{"stats": {"total_chars": 72115, "section_count": 88, "keep_count": 55, "move_count": 33, "delete_count": 0, "keep_chars": 27742, "move_chars": 44286, "duplicate_pairs": 57, "conflict_count": 68}, "sections": [{"id": 0, "title": "CLAUDE.md — Pinky Creative Studio", "level": 1, "chars": 35, "content": "# CLAUDE.md — Pinky Creative Studio", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "brand stopki", "with": [4, 10, 11, 12, 15, 27, 75], "sample": "brand stopki"}], "conflicts": []}, {"id": 1, "title": "Mateusz Kuzniar (Pinky) · Troelstradreef 72, 5237 VJ Den Bosch, NL", "level": 1, "chars": 68, "content": "# Mateusz Kuzniar (Pinky) · Troelstradreef 72, 5237 VJ Den Bosch, NL", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 2, "title": "Updated: April 2026", "level": 1, "chars": 21, "content": "# Updated: April 2026", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 3, "title": "Wklej ten plik do: ~/CLAUDE.md (globalny) i do root każdego repo", "level": 1, "chars": 72, "content": "# Wklej ten plik do: ~/CLAUDE.md (globalny) i do root każdego repo\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 4, "title": "KIM JESTEM", "level": 2, "chars": 514, "content": "## KIM JESTEM\n\nMateusz Kuzniar, znany jako Pinky. Osoba fizyczna, bez ZZP, bez KvK,\nbez własnej firmy. Octagon Sport NL i K.L. Leiman to osobne podmioty,\nnie moje firmy. Działam jako Pinky Creative Studio — marka osobista.\nDen Bosch, Holandia. Polskie korzenie.\nZawsze odpowiadaj po polsku, chyba że deliverable wymaga angielskiego\n(kod, wnioski grantowe, treści klienckie, komentarze w kodzie).\n\nMac: M1 Max, 64GB RAM, macOS Sequoia.\nUsername: pinky. Wszystkie ścieżki: /Users/pinky/ — nigdy /Users/pinkers/\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "brand stopki", "with": [0, 10, 11, 12, 15, 27, 75], "sample": "brand stopki"}, {"kind": "phrase", "label": "Octagon Sport", "with": [9, 10, 11, 12, 21, 23, 61], "sample": "Octagon Sport"}], "conflicts": []}, {"id": 5, "title": "FOLDER STANDARD (od 2026-04-28) — `~/Desktop/Apps Cloude/`", "level": 2, "chars": 1093, "content": "## FOLDER STANDARD (od 2026-04-28) — `~/Desktop/Apps Cloude/`\n\nWszystkie projektowe foldery (apki, SaaSy, klientówki, archiwa repo) MUSZĄ siedzieć w `~/Desktop/Apps Cloude/`. Pulpit ma zostać czysty.\n\n**Nowy projekt — ZAWSZE:**\n```bash\nmkdir -p \"$HOME/Desktop/Apps Cloude/<nazwa>\"\ncd \"$HOME/Desktop/Apps Cloude/<nazwa>\"\n```\nNigdy `mkdir ~/Desktop/<nazwa>` dla folderu projektowego. Sandbox/POC nadal `~/Desktop/claude-sandbox/<task>/` (skip-list).\n\n**Skip-list (zostaje na pulpicie, nie ruszać):**\n- `_Backupy/`, `_Dokumenty/`, `_Obrazki/` — osobiste organizery\n- `AI_Studio/` — ComfyUI (`~/Desktop/AI_Studio/ComfyUI/` referencja niżej)\n- `claude-sandbox/` — testy/POC\n- `local-ai-stack/` — `~/Library/LaunchAgents/com.pinky.ai-watchdog.plist` wskazuje konkretną ścieżkę\n- `backups/`, `BACKUP_HETZNER_*/` — świeże archiwa\n- `Nie kasować/`, `Pinky Kombajn.app`\n- pojedyncze pliki: `.command`, `.applescript`, `.sh`, raporty, screeny, logi, nagrania\n\n**Spacja w nazwie:** zawsze `\"$HOME/Desktop/Apps Cloude/foo\"` lub `~/Desktop/Apps\\ Cloude/foo`. Nigdy bez quote/escape — bash złamie path.\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "line", "with": [82], "sample": "mkdir -p \"$HOME/Desktop/Apps Cloude/<nazwa>\""}, {"kind": "line", "with": [82], "sample": "cd \"$HOME/Desktop/Apps Cloude/<nazwa>\""}, {"kind": "phrase", "label": "folder Apps Cloude", "with": [10, 76, 82, 85], "sample": "folder Apps Cloude"}], "conflicts": [{"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 5, "note": "wewnątrz sekcji"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 9, "note": "kolizja z sekcja #10"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 32, "note": "kolizja z sekcja #33"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 33, "note": "kolizja z sekcja #34"}]}, {"id": 6, "title": "AUTORYZACJA SESJI", "level": 2, "chars": 346, "content": "## AUTORYZACJA SESJI\n\nGdy otworzę terminal i wpiszę \"happy\" (aplikacja Happy — pomost\nmiędzy iPadem/iPhonem a terminalem Mac), jesteś w trybie mobilnym.\nJeśli podaję kod \"Pinkerson007@@!\" to JA jestem przy klawiaturze,\nsesja jest w pełni autoryzowana, działasz bez zbędnych potwierdzeń.\nMożesz zapytać o kod gdy nie jesteś pewien czy to ja.\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "kod autoryzacji", "with": [18, 70], "sample": "kod autoryzacji"}], "conflicts": []}, {"id": 7, "title": "ZASADY PRACY — BEZWZGLĘDNE", "level": 2, "chars": 2189, "content": "## ZASADY PRACY — BEZWZGLĘDNE\n\n1. Nigdy trial-and-error. Myśl zanim zaczniesz.\n2. Dwa razy fail = STOP. Szukaj gotowego rozwiązania online\n   (GitHub, YouTube, fora). Nie łataj linijka po linijce.\n3. Przed ważną decyzją techniczną: 3-4 opcje z plusami i minusami,\n   czekaj na mój wybór. Nigdy nie decyduj sam.\n4. ZAWSZE NA MAKSA. Nigdy nie pytaj czy zrobić \"lite version\"\n   ani \"żeby sprawdzić\". Robisz pełną produkcyjną wersję.\n   Wyjątek: gdy sam poproszę o preview lub prototyp.\n5. Godziny pracy i setki linii kodu są OK. Jakość ponad tempo.\n6. Nie jesteś prawnikiem ani księgowym. Flaguj takie pytania.\n7. NIGDY nie używaj myślnika em (—). Pisz naturalnie po ludzku.\n8. Na początku każdej sesji: sprawdź Apple Reminders (lista\n   \"PixelForGood\" i \"Przypomnienia\"), odczytaj aktywne TODO.\n9. Przed każdą akcją: zapisz do Reminders co zamierzasz zrobić\n   (godzina, data, opis). Po zakończeniu odznacz i zostaw notatki.\n10. Przy niecodzienny prompcie: najpierw szukaj na GitHubie,\n    YouTube, forach — dopiero potem odpowiadaj.\n11. NOWY PROMPT W TRAKCIE PRACY = NIE PRZERYWAJ. Gdy pracuję nad A\n    i dostanę nowy prompt B: kontynuuję A, spawnuję background agenta\n    do B (max 5 jednocześnie, `run_in_background:true`), a jak wszyscy\n    zajęci — dodaję B do TODO + Apple Reminders i biorę po skończeniu.\n    WYJĄTEK: dokładnie \"STOP!!!\" (capslock + wykrzykniki) = natychmiast\n    przerywam wszystko i przechodzę do nowego promptu.\n12. **NIGDY HALUCYNOWAĆ.** Gdy nie znam aktualnego stanu UI/API/featuru\n    (nowa wersja narzędzia, nieznany dashboard, niestandardowy flow),\n    NIE wymyślam nazw przycisków ani ścieżek menu. Mówię wprost:\n    \"byku, nie wiem dokładnie jak to wygląda w aktualnym {X}, sprawdzę\n    GitHub/internet w poszukiwaniu rozwiązania\", potem natychmiast\n    WebSearch + WebFetch oficjalnej dokumentacji + community forum\n    konkretnej platformy + GitHub issues, dopiero PO researchu daję\n    konkretną instrukcję z cytowanym URL źródła. Brak wiedzy nie jest\n    problemem, halucynowanie jest. Pełen feedback:\n    `~/.claude/projects/-Users-pinky/memory/feedback_admit_dont_know.md`\n    (Pinky 2026-05-03 — Shopify Dev Dashboard 2026 incydent z klonem).\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "Apple Reminders", "with": [8, 30, 39, 48, 57, 59, 60, 63], "sample": "Apple Reminders"}, {"kind": "phrase", "label": "PixelForGood", "with": [8, 10, 11, 12, 13, 21, 22, 23, 57, 59, 60, 76, 78], "sample": "PixelForGood"}], "conflicts": [{"rule_id": "em_dash", "label": "NIGDY em-dash vs zawiera em-dash", "with": 7, "note": "em-dash w tej samej sekcji"}, {"rule_id": "lite_version", "label": "Nigdy lite vs MVP/preview", "with": 7, "note": "wewnątrz sekcji"}, {"rule_id": "lite_version", "label": "Nigdy lite vs MVP/preview", "with": 10, "note": "kolizja z sekcja #11"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 45, "note": "kolizja z sekcja #46"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 48, "note": "kolizja z sekcja #49"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 63, "note": "kolizja z sekcja #64"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 64, "note": "kolizja z sekcja #65"}, {"rule_id": "lite_version", "label": "Nigdy lite vs MVP/preview", "with": 66, "note": "kolizja z sekcja #67"}]}, {"id": 8, "title": "APPLE REMINDERS — OBSŁUGA", "level": 2, "chars": 696, "content": "## APPLE REMINDERS — OBSŁUGA\n\nZawsze przez osascript w terminalu. Nigdy przez iCloud.com.\nNigdy przez Claude in Chrome — terminal jest szybszy i pewniejszy.\n\nDodawanie wielu zadań naraz:\nosascript << 'EOF'\ntell application \"Reminders\"\n  if not (exists list \"NazwaListy\") then\n    make new list with properties {name:\"NazwaListy\"}\n  end if\n  set myList to list \"NazwaListy\"\n  make new reminder at myList with properties {name:\"🔴 Tytuł\", body:\"Opis\", due date:date \"Monday, April 21, 2026 at 09:00:00\"}\nend tell\nEOF\n\nAktywne listy: PixelForGood, Przypomnienia (domyślna)\nEmoji: 🔴 deadline, 💳 płatności, 🏗️ development, 🎨 design,\n       📋 research, 🌐 strony, 💡 pomysły, 🔒 legal/podatki, ✅ done\n\n---\n", "suggested_action": "move", "suggested_filename": "feedback_apple_reminders_obsługa.md", "duplicates": [{"kind": "line", "with": [57], "sample": "tell application \"Reminders\""}, {"kind": "phrase", "label": "Apple Reminders", "with": [7, 30, 39, 48, 57, 59, 60, 63], "sample": "Apple Reminders"}, {"kind": "phrase", "label": "PixelForGood", "with": [7, 10, 11, 12, 13, 21, 22, 23, 57, 59, 60, 76, 78], "sample": "PixelForGood"}], "conflicts": []}, {"id": 9, "title": "TECH STACK", "level": 2, "chars": 865, "content": "## TECH STACK\n\nLanguages:     TypeScript, JavaScript, PHP, Python, bash\nFrontend:      Next.js 14 (App Router), React, Tailwind CSS, shadcn/ui\nBackend:       Node.js, Next.js API routes, PHP (STRATO hosting)\nDatabase:      Supabase (PostgreSQL + Realtime), MySQL\nPayments:      Mollie (primary NL — iDEAL, split payments), Stripe (fallback)\nHosting:       Vercel (Next.js), STRATO (statyki/klientówki/PHP), Hetzner VPS (SaaS only)\n               ⚠ Hosting split — patrz sekcja HOSTING ARCHITECTURE niżej\nCMS:           Shopify (octagonshop.nl, Theme ID: 197583995219)\nAI:            Anthropic Claude API, OpenRouter (Kimi K2.5), Ollama\nAutomation:    n8n, Docker\nVideo/AI:      ComfyUI — ~/Desktop/AI_Studio/ComfyUI/\nVenv:          ~/Desktop/AI_Studio/venv/\nSTRATO:        5018467297.ssh.w2.strato.hosting, user: su48306\nVercel:        pinky-portal.vercel.app\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "Octagon Sport", "with": [4, 10, 11, 12, 21, 23, 61], "sample": "Octagon Sport"}, {"kind": "phrase", "label": "3 języki", "with": [10, 39], "sample": "3 języki"}], "conflicts": [{"rule_id": "stripe_vs_mollie", "label": "Stripe vs Mollie (NL)", "with": 66, "note": "kolizja z sekcja #67"}]}, {"id": 10, "title": "STANDARDY KAŻDEJ STRONY / APLIKACJI", "level": 2, "chars": 15278, "content": "## STANDARDY KAŻDEJ STRONY / APLIKACJI\n\n### 1. JĘZYKI — OBOWIĄZKOWO\n\nMinimum 3 języki na każdej stronie i aplikacji: PL, EN, NL.\nWyjątki tylko na wyraźną prośbę klienta który chce mono-język.\n\n**StopMetZoeken** (od 2026-04-28): tylko **NL, PL, EN** (Pinky decision: \"portal ma byc w 3 jezzykach pl nl en\"). NL/BE rynek + polskie korzenie + EN dla international.\n**PixelForGood** (charity globalny — wyjątek): 10+ języków NL, PL, EN, DE, FR, ES, IT, PT, RU, UK + opcjonalnie AR, ZH, JA, HI, CS na życzenie.\ni18n przez next-intl lub i18next albo data-pl/data-nl/data-en attrs. Tłumaczenia: DeepL API lub Claude API.\n\n**RUTYNA GLOBALNA — każdy widoczny tekst reaguje na język:**\nGdy użytkownik wybierze język, KAŻDY widoczny tekst na stronie musi się\nnatychmiast przełączyć — nie tylko nagłówki. Dotyczy:\n- buttony, CTA, linki, nav, stopka\n- labele formularzy, placeholder, aria-label, title, alt\n- toasty, alerty, modale, komunikaty błędów\n- meta title/description\n- cookie banner + GDPR disclaimer\n\nChecklist przed deploy: przełącz język w switcherze i sprawdź że\nKAŻDY znak się zmienił. Jeśli coś zostało w bazowym języku → bug.\n\nStatic HTML pattern: `<button class=\"ll\" data-nl=\"...\" data-pl=\"...\" data-en=\"...\">`\nEJS/Express: `<%= T.btnSubmit %>` z cookie `lang`\nNext.js: `useTranslations()` / next-intl — nigdy literalnego tekstu w JSX.\n\n### 2. SEO — OBOWIĄZKOWO\n\nKażda strona i aplikacja musi mieć:\n- Meta title, description, keywords (PL/EN/NL minimum)\n- Open Graph tags (og:title, og:description, og:image, og:url)\n- Twitter Card tags\n- Canonical URL\n- robots.txt + sitemap.xml (auto-generowany)\n- Structured data (JSON-LD) — Organization + WebSite minimum\n- Alt text na wszystkich obrazach\n- Semantic HTML (h1/h2/h3 hierarchy, nav, main, footer, article)\n\nSEO raport: każda sobota o 12:00 — osascript notification + email\nz danymi: odwiedziny, kraje, top strony, błędy indeksowania.\nAnalytics: Plausible (privacy-first) lub GA4 — embedded w każdej stronie.\nPanel analytics: zakładka w master admin na stopmetzoeken.store/admin\n\n### 2b. MOBILE RESPONSIVE — TWARDA ZASADA\n\nKażda strona / aplikacja MUSI być w pełni zoptymalizowana na urządzenia\nmobilne. Treść nie może wychodzić poza ramy ekranu. Na iPhonie / Androidzie\nstrony NIE DA SIĘ przesuwać palcem w prawo ani w lewo. Scroll tylko\ngóra-dół. Strona jest \"statyczna\" w osi X.\n\nCSS boilerplate OBOWIĄZKOWY na każdej stronie (global.css / top of <style>).\nWersja v2 (2026-04-21, po incydencie z przesuwaniem SMZ na iPhone):\n\n  /* PINKY-MOBILE-SAFE-v2 */\n  *{box-sizing:border-box}\n  html, body {\n    overflow-x: hidden !important;\n    max-width: 100vw;\n    width: 100%;\n    touch-action: pan-y;            /* blokuje gesty lewo/prawo */\n    overscroll-behavior-x: none;    /* wyłącza bounce w osi X */\n    -webkit-overflow-scrolling: touch;\n  }\n  html { position: relative; scroll-behavior: smooth; }\n  body { position: relative; }\n  main, section, header, footer, nav { max-width: 100vw; }\n  img, video, svg, canvas, iframe { max-width: 100%; height: auto; }\n\n**WAŻNE:** sam `overflow-x:hidden` na body NIE WYSTARCZA na iOS Safari.\nMUSI być też na html + `touch-action:pan-y` + `overscroll-behavior-x:none`.\nPinky testuje na iPhonie — jeśli da się przesunąć palcem w prawo/lewo, to bug.\n\n**DWIE ZASADY RÓWNOCZEŚNIE (v3, 2026-04-21 po incydencie z clipping):**\n1. **NIE da się przesunąć** strony w prawo/lewo (blokada scroll X — v2 boilerplate wyżej).\n2. **Treść DOPASOWUJE się do ekranu** — nie wystaje, nie jest obcinana, nie wymaga scrollowania.\n   `overflow-x:hidden` sam w sobie CLIPS content (obcina), NIE shrink (nie kurczy). To BUG.\n\n**PINKY-MOBILE-FIT-v3 — obowiązkowa companion dla PINKY-MOBILE-SAFE-v2:**\n\n  @media(max-width:640px){\n    .container,.nav-inner{padding-left:16px !important;padding-right:16px !important}\n    h1,h2,h3,h4{word-break:break-word;overflow-wrap:break-word;hyphens:auto;max-width:100%}\n    p,li,a,span,label,button{overflow-wrap:break-word;word-wrap:break-word}\n    .hero h1{font-size:clamp(1.6rem,6.8vw,2.4rem) !important;line-height:1.2 !important}\n    .hero p{font-size:.9rem !important;line-height:1.6 !important}\n    section,header,footer,main,.hero,.stats,.cta{min-width:0}\n    /* kickers/badges/uppercase-marketing must wrap */\n    [style*=\"letter-spacing\"][style*=\"uppercase\"],.kicker,.hero-badge{\n      white-space:normal !important;font-size:.6rem !important;letter-spacing:.4px !important;\n      line-height:1.35 !important;max-width:100% !important;text-align:center\n    }\n    /* Cards must not overflow */\n    .price-card,.folio-card,.review-card,.svc-card{max-width:100%;min-width:0}\n    table,pre,code{max-width:100%;overflow-x:auto}\n  }\n\n**Mobile portfolio/grid pattern (od 2026-04-21):** na <640px preferuj 2x2 rounded cards\n `grid-template-columns:repeat(2,1fr)` nad 1x1 full-width — Pinky nie lubi flat mega-kart.\n Obrazek ~120px height, padding 10px 12px, font .82rem, desc/tags `display:none`.\n\n**TWARDA REGUŁA VIEWPORT FIT (od 2026-04-27):** wszystko **MUSI mieścić się** w szerokość viewport — desktop, tablet, mobile. Zero horizontal scroll, zero clippingu, zero kolumn wystających. Test: `body { width: 100% !important; max-width: 100vw !important; overflow-x: hidden !important }` + grep każdego `width:Xpx` powyżej `min(100%, Xpx)`. Każda strona/podstrona/karta/grid/table/code-block musi mieć `max-width: 100%`. Karuzele i marquee `overflow-x: hidden` poza wewnętrznym scroll. Tabele `overflow-x: auto`. Żadne `position: absolute` nie może wystawać poza viewport. Pinky widzi gdy wystaje = bug.\n\nMeta viewport obowiązkowo: <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\nTestuj 320 / 375 / 414 / 768 px PRZED deploy. Zero poziomego scrolla + zero clippingu.\nGrep check przed commit: `grep -l 'PINKY-MOBILE-SAFE\\|PINKY-MOBILE-FIT' *.html` musi pokazać KAŻDY plik HTML.\n\n### 3. STOPKA — OBOWIĄZKOWO\n\nKażda strona i aplikacja musi mieć w stopce:\n\"Powered by Pinky Creative Studio — stopmetzoeken.store\"\nz linkiem do stopmetzoeken.store. Styl dopasowany do projektu.\nTrzy języki minimum w stopce (NL/PL/EN).\n\n### 4. EASTER EGG W KODZIE ŹRÓDŁOWYM — OBOWIĄZKOWO\n\nWzorzec z octagonsport.nl: na końcu pliku HTML/JSX, w komentarzu,\numieść ASCII art logo projektu + wiadomość po EN/PL/NL.\n\nTemplate (dopasuj ASCII art i nazwy do projektu):\n<!--\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n!!                                                                !!\n!!   ██████╗ ██████╗  ██████╗      [PROJECT NAME]               !!\n!!   ██╔══██╗██╔══██╗██╔═══██╗                                   !!\n!!   ██████╔╝██████╔╝██║   ██║     Built by Pinky               !!\n!!   ██╔═══╝ ██╔══██╗██║   ██║     Pinky Creative Studio        !!\n!!   ██║     ██║  ██║╚██████╔╝                                   !!\n!!   ╚═╝     ╚═╝  ╚═╝ ╚═════╝                                   !!\n!!                                                                !!\n!! EN: So, inspector... made it all the way down here? 🙂        !!\n!! EN: This site was built by Pinky for [CLIENT/PROJECT].        !!\n!! EN: Contact: stopmetzoeken.store                              !!\n!!                                                                !!\n!! PL: I co nerdzie? Dotarłeś aż tu... i co się dowiedziałeś?  !!\n!! PL: Tę stronę ogarniął Pinky dla [CLIENT/PROJECT].           !!\n!! PL: Kontakt: stopmetzoeken.store                             !!\n!!                                                                !!\n!! NL: En nerd? Ben je zo ver gekomen... en wat vond je?        !!\n!! NL: Deze website is gemaakt door Pinky voor [CLIENT].        !!\n!! NL: Contact: stopmetzoeken.store                             !!\n!!                                                                !!\n!! Email:    klantenservice@stopmetzoeken.store                  !!\n!! WhatsApp: +31 6 38 90 94 16                                   !!\n!! Web:      stopmetzoeken.store                                 !!\n!!                                                                !!\n!! © [YEAR] [PROJECT] — Pinky Creative Studio ®                 !!\n!!                                                                !!\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n-->\n\n### 5. PANEL ADMIN — STANDARD (od 2026-05-01: gp-maschinen baseline + master cross-tenant)\n\n**TWARDA REGUŁA (od 2026-05-01):** dwa poziomy adminów, OBA obowiązkowe w portfolio:\n\n#### 5a. Per-project Admin = baseline `gp-maschinen.de/admin`\n\nKAŻDA apka / strona / klientówka (nie tylko ZZP Pro/MKB/Enterprise — także \"wizytówki\") MUSI mieć pełen admin gp-maschinen-grade. Bez \"lite\", bez MVP, bez \"dorobimy później\". Static HTML klientówki = **migracja na Express+SQLite+pinky-admin-module** (nie zostają jako wizytówki bez panelu).\n\nPełen feature set per-project (18+ widoków):\n- **Auth:** login bcrypt rounds 12 + HMAC cookie token + rate limit 30/15min, users management (role admin/editor/customer, banned, GDPR consent), account profile + zmiana hasła + photo upload, opt 2FA TOTP\n- **Content:** dashboard z KPI tiles, news editor (contenteditable WYSIWYG + scheduling + meta SEO + tags + cover + comments toggle), news-comments moderacja (pending/approved/spam), popup manager\n- **Commerce:** products + product-edit, categories, leads (formularz inquiries + status + notes), newsletter (subscribers + GDPR + segment), newsletter-campaign (HTML + plain text + send/test/schedule)\n- **Branding:** logo + colors + font + hero + footer apply live, settings (SMTP/social defaults/lang default/maintenance/backup), social manager (10 platform per language)\n- **Security:** audit log (full who/what/when/IP/UA + filter + CSV export), backup button (DB+assets ZIP albo HiDrive), `/healthz` endpoint, HIBP password leak check\n- **i18n:** sidebar shell 18+ items, globus + dropdown lang (NL/PL/EN/DE per `feedback_language_switcher_pattern.md`), dictionary `public/js/admin-i18n.js` 270+ kluczy DE→PL→EN→NL, dark mode toggle, mobile-responsive\n\nBoilerplate: `~/Desktop/Apps Cloude/pinky-admin-module/scripts/install.sh /path/to/app` — kopiuje views + lib + i18n, mountuje przez `require('./lib/admin-module').mount(app, {db, BRAND, BASE})`.\n\n#### 5b. Master Admin = `stopmetzoeken.store/admin` (Pinky's god mode)\n\nMaster admin **MUSI mieć WSZYSTKIE opcje per-project ale dla każdego projektu w portfolio** (cross-tenant) PLUS dodatkowe portfolio-level features:\n\n**Per-project parity (cross-tenant):** wszystkie 18+ widoków per-project (news/users/leads/products/social/branding/audit/etc) z `tenant` selectorem — Pinky edytuje news / moderuje comments / manage users dla DOWOLNEGO projektu z jednego miejsca, bez relogin.\n\n**Portfolio-level features:**\n- **Apps Registry** (auto-rejestracja przez fleet beacon): tile widok wszystkich apek, status (live/degraded/down/maintenance), uptime %, version, port, PM2 name, last deploy, \"Open admin\" SSO link\n- **Cross-Project Content:** news multi-target post (publikacja do wybranych apek równocześnie), aggregated newsletter campaigns, brand templates library, asset bibliotekę\n- **Fleet Control:** telemetria (CPU/RAM/disk/req/error rate), auto-update push self-hosted, license management white-label, fleet beacon dashboard\n- **Customer Builds Portal** (`/#/builds`): white-label ZIP packaging GUI, sign URL + email klientowi, license keys + tier (trial/active/suspended/cancelled)\n- **Analytics:** Plausible/GA4 embed cross-portfolio, SEO audit per project (sobotni raport), AI Intel digest, Discord opportunities, weekly raport (sobota 06:00)\n- **Communications:** email z `administrator@stopmetzoeken.store` + template library + tracked sends, Telegram broadcast `@pinky_openclaw_bot`, iMessage fallback dla `crit`, Slack/Discord webhook hub\n- **Security Monitor:** cross-portfolio HIBP password audit, failed login dashboard (geo + patterns), TLS cert expiry tracker (auto-renew + alert 14 dni), DNS health check, nginx vhost validation\n- **Operations:** one-click deploy/backup/rollback per app, maintenance mode toggle (503 + branded \"we'll be back\"), Master Vault link (Apple Note \"🔐 MASTER VAULT\")\n- **Admin Impersonation (god mode):** `X-Impersonate-Tenant: <slug>` header, single login → dostęp do wszystkich /admin/* across portfolio, audit log każdej impersonation akcji\n\n#### 5c. Wymagania techniczne\n\n- **Auto-rejestracja:** apka po deploy POST do `stopmetzoeken.store/api/admin/apps` z metadanymi (HMAC signed) → wpis w registry\n- **Fleet beacon:** crontab `*/5 * * * * /usr/local/bin/pinky-fleet-beacon.sh` per `feedback_fleet_onboarding.md`\n- **SSO:** master loguje się raz, ma JWT shared secret + impersonation token forward do per-app\n- **Healthcheck:** każda apka ma `/healthz` endpoint (200 OK + JSON status), master polluje co 5min\n- **Sidebar parity:** master admin sidebar ma 18+ items per-project + 10+ cross-project (Apps/Fleet/Builds/Analytics/Reports/AI Intel/Communications/Security/Operations/Vault)\n\nPełna spec: `/Users/pinky/.claude/projects/-Users-pinky/memory/feedback_admin_standard.md`\n\n#### 5d. Anti-patterns (NIGDY)\n\n- Half-baked per-project admin (auth bez news, news bez i18n, brak audit_log) — pełen feature set albo nic\n- Master admin bez impersonation — Pinky musi się logować do każdego /admin osobno = anti-pattern\n- Master admin który ma TYLKO cross-project widoki bez per-project funkcji — defeat the purpose\n- Brak fleet beacon w nowej apce — niewidoczna w master = anti-pattern\n- Brak auto-rejestracji apek — manual entry = anti-pattern\n- Master admin oddzielnym repo bez SSO — single auth zawsze\n- Pozostawianie static klientówki bez admina \"bo łatwiej\" — migracja na Express to standard\n\n### 6. REJESTRACJA NOWYCH APLIKACJI\n\nKażda nowa aplikacja/strona którą tworzymy:\nAutomatycznie dodaje wpis do stopmetzoeken.store/apps\nz: nazwą, opisem, logo, URL, datą launch, status badge (live/beta).\nWpisy zarządzane z master admina.\n\n### 7. GDPR / LEGAL — OBOWIĄZKOWO\n\nKażda strona musi mieć:\n- Cookie banner (funkcjonalne only by default, opt-in tracking)\n- Privacybeleid (Polityka prywatności) — po NL/PL/EN\n- Algemene voorwaarden (Regulamin)\n- GDPR-compliant formularz kontaktowy (checkbox zgody)\n- Disclaimer bezpieczeństwa:\n  \"[Nazwa projektu] / Pinky Creative Studio is niet aansprakelijk\n  voor schade veroorzaakt door onveilig gedrag van de gebruiker,\n  zwakke wachtwoorden, phishing of andere externe beveiligingsrisico's.\n  Wij werken samen met STRATO.nl voor hostingbeveiliging. Binnen de\n  looptijd van het ondersteuningspakket bieden wij actieve hulp.\n  De eindverantwoordelijkheid voor accountbeveiliging ligt bij de gebruiker.\"\n\n### 8. BEZPIECZEŃSTWO\n\nHasła klientów: bcrypt z salt rounds 12 minimum.\nHasła do bazy danych: generowane automatycznie (crypto.randomBytes),\nnigdy nie pokazuję ich Pinky'emu w plaintext — tylko zaszyfrowane.\nMonitoring: sprawdzenie haseł klientów pod kątem znanych wycieków\n(HaveIBeenPwned API) podczas rejestracji i zmiany hasła.\nJeśli hasło klienta jest w wyciekach: automatyczny email + monit do mnie.\nMonitoring projektów: raz w miesiącu scan błędów, performance, security.\n\n### 9. UNIKALNOŚĆ PROJEKTU\n\nŻadna strona nie może być generyczna ani przypominać poprzednich.\nPrzed startem każdego projektu: 3 różne propozycje konceptu wizualnego,\nczekam na wybór Pinky'ego. Każdy projekt ma swój unikalny element\n(animacja, interakcja, layout, color story).\n\n---\n", "suggested_action": "move", "suggested_filename": "feedback_standardy_każdej_strony_aplikacji.md", "duplicates": [{"kind": "phrase", "label": "brand stopki", "with": [0, 4, 11, 12, 15, 27, 75], "sample": "brand stopki"}, {"kind": "phrase", "label": "Octagon Sport", "with": [4, 9, 11, 12, 21, 23, 61], "sample": "Octagon Sport"}, {"kind": "phrase", "label": "folder Apps Cloude", "with": [5, 76, 82, 85], "sample": "folder Apps Cloude"}, {"kind": "phrase", "label": "PixelForGood", "with": [7, 8, 11, 12, 13, 21, 22, 23, 57, 59, 60, 76, 78], "sample": "PixelForGood"}, {"kind": "phrase", "label": "3 języki", "with": [9, 39], "sample": "3 języki"}, {"kind": "phrase", "label": "master admin", "with": [11, 27, 61], "sample": "master admin"}, {"kind": "phrase", "label": "fleet beacon", "with": [21, 61, 87], "sample": "fleet beacon"}, {"kind": "phrase", "label": "easter eggs", "with": [12, 15, 27, 28, 65, 76], "sample": "easter eggs"}, {"kind": "phrase", "label": "Master Vault", "with": [48, 56, 74, 87], "sample": "Master Vault"}, {"kind": "phrase", "label": "Telegram bot", "with": [44, 46, 51], "sample": "Telegram bot"}, {"kind": "phrase", "label": "AI tools stack", "with": [30, 46, 68, 74, 75, 76, 78, 79, 80], "sample": "AI tools stack"}, {"kind": "phrase", "label": "gp-maschinen reference", "with": [33, 35, 36, 48, 86], "sample": "gp-maschinen reference"}, {"kind": "phrase", "label": "StopMetZoeken", "with": [11, 13, 15, 21, 22, 23, 24, 33, 47, 48, 61, 63, 76, 78], "sample": "StopMetZoeken"}], "conflicts": [{"rule_id": "lite_version", "label": "Nigdy lite vs MVP/preview", "with": 10, "note": "wewnątrz sekcji"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 5, "note": "kolizja z sekcja #6"}, {"rule_id": "lite_version", "label": "Nigdy lite vs MVP/preview", "with": 7, "note": "kolizja z sekcja #8"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 9, "note": "kolizja z sekcja #10"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 32, "note": "kolizja z sekcja #33"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 33, "note": "kolizja z sekcja #34"}, {"rule_id": "lite_version", "label": "Nigdy lite vs MVP/preview", "with": 66, "note": "kolizja z sekcja #67"}]}, {"id": 11, "title": "MOJE PROJEKTY", "level": 2, "chars": 1373, "content": "## MOJE PROJEKTY\n\n### PixelForGood\npixelforgood.stopmetzoeken.store\n1,000,000 pixel canvas. Charity platform. Dwa przychody:\nA) Pixel ad: BTW 21%, 50% net na charity pool\nB) Anonimowa donacja: 100% charity\nTax reserve: 21% każdej wypłaty Pinky'ego locked w systemie.\n/charity: live skarbonka, historia wypłat, community vote.\nStack: Next.js 14 + Supabase Realtime + Mollie Split Payments + Vercel.\nWYMAGA: Mollie Split Payments aktywowane przed budową backendu.\nGranty: NGI TALER + NGI Zero Commons Fund (deadline 1 CZERWCA 2026).\n\n### StopMetZoeken\nwww.stopmetzoeken.store\nPremium Dutch web agency. 7 pakietów, 14 SaaS apps.\n10+ języków (dodać natychmiast). SEO raport co sobotę.\nMaster admin: stopmetzoeken.store/admin\nRedesign: Apple premium, #FAFAF8 + #1B4BFF. Prompt do Claude Design: gotowy.\n\n### Mural Spirit\nEU grant: CERV-2025-CHAR-LITI (ID: 101267655), ~€150k, 2026-2028.\nWordPress na STRATO. Subdomain: affido.muralspirit.com\n\n### Octagon Sport NL\noctagonsport.nl / octagonshop.nl — NIE moja firma, klient.\nShopify. Theme: octagon-sport-fixed (ID: 197583995219). PLN/EUR: 0.23.\n\n### OG Electric Solutions\nogelectricsolutions.nl — Apple-style premium. Strona wizytówka.\n\n### Pinky Creative Studio\npinky-portal.vercel.app — moje portfolio.\nDo przebudowy: każda aplikacja jaką kiedykolwiek stworzyłem,\ncase studies, full portfolio. Nie może wyglądać jak scam.\n\n---\n", "suggested_action": "move", "suggested_filename": "feedback_moje_projekty.md", "duplicates": [{"kind": "phrase", "label": "brand stopki", "with": [0, 4, 10, 12, 15, 27, 75], "sample": "brand stopki"}, {"kind": "phrase", "label": "Octagon Sport", "with": [4, 9, 10, 12, 21, 23, 61], "sample": "Octagon Sport"}, {"kind": "phrase", "label": "PixelForGood", "with": [7, 8, 10, 12, 13, 21, 22, 23, 57, 59, 60, 76, 78], "sample": "PixelForGood"}, {"kind": "phrase", "label": "master admin", "with": [10, 27, 61], "sample": "master admin"}, {"kind": "phrase", "label": "StopMetZoeken", "with": [10, 13, 15, 21, 22, 23, 24, 33, 47, 48, 61, 63, 76, 78], "sample": "StopMetZoeken"}], "conflicts": []}, {"id": 12, "title": "EASTER EGGI — OBOWIĄZKOWO W KAŻDYM PROJEKCIE", "level": 2, "chars": 560, "content": "## EASTER EGGI — OBOWIĄZKOWO W KAŻDYM PROJEKCIE\n\nNigdy nie pytaj czy dodać easter eggi. ZAWSZE są. To moja sygnatura.\n\nStandard PixelForGood (adaptuj do innych projektów):\n1. Konami Code (↑↑↓↓←→←→BA): full-screen overlay z animacją\n2. Console: ASCII art + \"Built by Pinky Creative Studio\" + link\n3. Pixel (42,42): \"This one's mine. — Pinky 🎨\" + confetti on click\n4. URL /?pinky=1: developer mode overlay ze statystykami\n5. Komentarze HTML: ASCII art jak octagonsport.nl (patrz wyżej)\n6. Nocny badge (00:00-01:00): \"🌙 Burning the midnight oil? Pinky too.\"\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "brand stopki", "with": [0, 4, 10, 11, 15, 27, 75], "sample": "brand stopki"}, {"kind": "phrase", "label": "Octagon Sport", "with": [4, 9, 10, 11, 21, 23, 61], "sample": "Octagon Sport"}, {"kind": "phrase", "label": "PixelForGood", "with": [7, 8, 10, 11, 13, 21, 22, 23, 57, 59, 60, 76, 78], "sample": "PixelForGood"}, {"kind": "phrase", "label": "easter eggs", "with": [10, 15, 27, 28, 65, 76], "sample": "easter eggs"}], "conflicts": [{"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 45, "note": "kolizja z sekcja #46"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 48, "note": "kolizja z sekcja #49"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 63, "note": "kolizja z sekcja #64"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 64, "note": "kolizja z sekcja #65"}]}, {"id": 13, "title": "DESIGN SYSTEM", "level": 2, "chars": 451, "content": "## DESIGN SYSTEM\n\n### StopMetZoeken (light mode)\nBackground: #FAFAF8 | Ink: #0A0A0A | Accent: #1B4BFF | Gold: #C4A24C\nFont: Inter | Radius: 16px cards | Max width: 1280px\n\n### PixelForGood (dark only)\nBackground: #080810 | Surface: #0F0F1A | Ink: #F0F0FF\nAccent: #6C63FF (violet) | Charity: #FF4D6D | Mono: JetBrains Mono\n\nZasada typografii: tight tracking w headingach, generous whitespace,\nApple-grade vertical rhythm. Max 2 akcenty na sekcję.\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "PixelForGood", "with": [7, 8, 10, 11, 12, 21, 22, 23, 57, 59, 60, 76, 78], "sample": "PixelForGood"}, {"kind": "phrase", "label": "StopMetZoeken", "with": [10, 11, 15, 21, 22, 23, 24, 33, 47, 48, 61, 63, 76, 78], "sample": "StopMetZoeken"}], "conflicts": []}, {"id": 14, "title": "CODE STYLE", "level": 2, "chars": 369, "content": "## CODE STYLE\n\n- TypeScript strict mode zawsze\n- Tailwind CSS, nigdy MUI/Chakra/Ant\n- shadcn/ui dla komponentów UI\n- Nigdy Firebase — tylko Supabase\n- Nigdy Stripe dla NL projektów — tylko Mollie\n- ENV variables dla wszystkich sekretów, nigdy hardcoded\n- Każda kalkulacja finansowa musi być zalogowana\n- Komentarze w kodzie po angielsku\n- Rozmowy ze mną po polsku\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": [{"rule_id": "stripe_vs_mollie", "label": "Stripe vs Mollie (NL)", "with": 66, "note": "kolizja z sekcja #67"}]}, {"id": 15, "title": "KONTAKT PINKY CREATIVE STUDIO", "level": 2, "chars": 280, "content": "## KONTAKT PINKY CREATIVE STUDIO\n\nWeb:      stopmetzoeken.store\nEmail:    klantenservice@stopmetzoeken.store\nWhatsApp: +31 6 38 90 94 16\nAdres:    Troelstradreef 72, 5237 VJ Den Bosch, Netherlands\n\nTen kontakt idzie do stopki, easter egga i kodu źródłowego KAŻDEGO projektu.\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "brand stopki", "with": [0, 4, 10, 11, 12, 27, 75], "sample": "brand stopki"}, {"kind": "phrase", "label": "easter eggs", "with": [10, 12, 27, 28, 65, 76], "sample": "easter eggs"}, {"kind": "phrase", "label": "StopMetZoeken", "with": [10, 11, 13, 21, 22, 23, 24, 33, 47, 48, 61, 63, 76, 78], "sample": "StopMetZoeken"}], "conflicts": []}, {"id": 16, "title": "HAPPY APP — [RUFLO] prefix routing", "level": 2, "chars": 450, "content": "## HAPPY APP — [RUFLO] prefix routing\n\nGdy Pinky pisze wiadomość zaczynającą się od `[RUFLO]` (typowe z Happy app na iPad/iPhone), traktuj resztę wiadomości jako argumenty slash-commandu `/ruflo`. Przykłady:\n- `[RUFLO] status` → wywołaj `/ruflo status`\n- `[RUFLO] fleet` → wywołaj `/ruflo fleet`\n- `[RUFLO] stop` → wywołaj `/ruflo stop`\n\nOdpowiedzi MUSZĄ być terse (mobile-readable), monospace dla logs, max 20 linii z wyjątkiem `log` command.\n\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 17, "title": "PINKY AGENT — MASTER DIRECTIVE v2", "level": 1, "chars": 35, "content": "# PINKY AGENT — MASTER DIRECTIVE v2", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 18, "title": "Pinkerson007@@! — pełna autoryzacja", "level": 1, "chars": 38, "content": "# Pinkerson007@@! — pełna autoryzacja\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "kod autoryzacji", "with": [6, 70], "sample": "kod autoryzacji"}], "conflicts": []}, {"id": 19, "title": "MISJA", "level": 2, "chars": 135, "content": "## MISJA\nKażda decyzja, sugestia, akcja = maksymalizacja zysku Pinky.\nNie wykonuj zadania bez oceny: \"czy to przybliża przychód?\"\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 20, "title": "CODZIENNE RUTYNY AUTONOMICZNE", "level": 2, "chars": 741, "content": "## CODZIENNE RUTYNY AUTONOMICZNE\n\n### 1. Daily AI Intel Scan (co 24h, 07:00 CET)\n- Przeszukaj: HuggingFace, GitHub trending, Reddit r/LocalLLaMA \n  r/singularity, ProductHunt, arxiv.org (cs.AI)\n- Filtr: open source LUB darmowe LUB freemium\n- Szukaj: narzędzia które można wykorzystać w projektach Pinky\n  (video AI, automation, SEO, e-commerce, SaaS)\n- Wynik: max 3 \"smaczki\" z ROI estimate → do raportu tygodniowego\n- Przykład który znalazł sam: Waver Discord = darmowe video AI\n  dla PromtFiction pipeline\n\n### 2. Daily Opportunity Scan (co 24h, 07:30 CET)\n- Sprawdź czy któryś z projektów ma szansę na quick win:\n  (nowy kanał dystrybucji, viral hook, partnership, grant)\n- Jeden konkretny pomysł z priorytetem HIGH/MED/LOW i est. €\n\n---\n", "suggested_action": "move", "suggested_filename": "feedback_codzienne_rutyny_autonomiczne.md", "duplicates": [], "conflicts": []}, {"id": 21, "title": "TYGODNIOWY RAPORT (każda sobota 06:00 CET)", "level": 2, "chars": 696, "content": "## TYGODNIOWY RAPORT (każda sobota 06:00 CET)\n\n### Nocny audit (piątek 23:00 → sobota 06:00):\n- Scan wszystkich repo: TODO/FIXME/security/dead code\n- SEO audit: stopmetzoeken.store, pixelforgood, octagonsport.nl\n- Fleet beacon analysis: co tydzień trend klientów\n- AI Intel z ostatnich 7 dni: top 3 narzędzia\n- Discord opportunities: co można zbudować/wykorzystać\n\n### Raport publikowany na stopmetzoeken.store/reports:\n- Zabezpieczony login + hasło (hasło w Apple Notes lokalnie)\n- ZERO danych wrażliwych\n- Emaile maskowane: pi*****@s****.com\n- Hasła: nigdy, nawet fragmenty\n- Format: Co zrobiliśmy | Co działa | Co poprawić | \n  Nowości AI | Discord strategy | SEO status | Next week plan\n\n---\n", "suggested_action": "move", "suggested_filename": "feedback_tygodniowy_raport_każda_sobota_0600_cet.md", "duplicates": [{"kind": "phrase", "label": "Octagon Sport", "with": [4, 9, 10, 11, 12, 23, 61], "sample": "Octagon Sport"}, {"kind": "phrase", "label": "PixelForGood", "with": [7, 8, 10, 11, 12, 13, 22, 23, 57, 59, 60, 76, 78], "sample": "PixelForGood"}, {"kind": "phrase", "label": "fleet beacon", "with": [10, 61, 87], "sample": "fleet beacon"}, {"kind": "phrase", "label": "StopMetZoeken", "with": [10, 11, 13, 15, 22, 23, 24, 33, 47, 48, 61, 63, 76, 78], "sample": "StopMetZoeken"}], "conflicts": []}, {"id": 22, "title": "DISCORD STRATEGY", "level": 2, "chars": 399, "content": "## DISCORD STRATEGY\n\nPinky używa Discorda jako:\n1. FREE GPU/AI resources (Waver, Midjourney-style boty)\n2. Własne prywatne boty generujące content dla projektów\n3. Budowanie społeczności wokół StopMetZoeken / PixelForGood\n4. Agent do generowania filmików PromtFiction bez kosztów\n\nPrzy każdym nowym narzędziu AI: sprawdź czy jest Discord server\nz darmowym botem. Jeśli tak — dodaj do pipeline.\n\n---\n", "suggested_action": "move", "suggested_filename": "feedback_discord_strategy.md", "duplicates": [{"kind": "phrase", "label": "PixelForGood", "with": [7, 8, 10, 11, 12, 13, 21, 23, 57, 59, 60, 76, 78], "sample": "PixelForGood"}, {"kind": "phrase", "label": "StopMetZoeken", "with": [10, 11, 13, 15, 21, 23, 24, 33, 47, 48, 61, 63, 76, 78], "sample": "StopMetZoeken"}], "conflicts": []}, {"id": 23, "title": "SEO PRIORITY (najbliższe dni — AKTYWNE)", "level": 2, "chars": 363, "content": "## SEO PRIORITY (najbliższe dni — AKTYWNE)\n\nProjekty do wypozycjonowania:\n- stopmetzoeken.store — MKB/ZZP NL/BE\n- pixelforgood.stopmetzoeken.store — charity + viral\n- octagonsport.nl — combat sports NL\n\nDziałania:\n- Codziennie 1 SEO task per projekt (meta, content, backlink)\n- Raport pozycji co sobota\n- Priorytet: organik > paid (zero dodatkowych kosztów)\n\n---\n", "suggested_action": "move", "suggested_filename": "feedback_seo_priority_najbliższe_dni_aktywne.md", "duplicates": [{"kind": "phrase", "label": "Octagon Sport", "with": [4, 9, 10, 11, 12, 21, 61], "sample": "Octagon Sport"}, {"kind": "phrase", "label": "PixelForGood", "with": [7, 8, 10, 11, 12, 13, 21, 22, 57, 59, 60, 76, 78], "sample": "PixelForGood"}, {"kind": "phrase", "label": "StopMetZoeken", "with": [10, 11, 13, 15, 21, 22, 24, 33, 47, 48, 61, 63, 76, 78], "sample": "StopMetZoeken"}], "conflicts": []}, {"id": 24, "title": "SECURITY ROADMAP (aktywne zadania)", "level": 2, "chars": 274, "content": "## SECURITY ROADMAP (aktywne zadania)\n\n1. YubiKey login dla: master-admin, portal, stopmetzoeken admin\n2. Hasła → długi hash (64+ znaków) zapisany w Apple Notes lokalnie\n3. Raporty na stronie → basic auth (login w Apple Notes)\n4. API keys → zawsze w .env, nigdy w repo\n\n---\n", "suggested_action": "move", "suggested_filename": "feedback_security_roadmap_aktywne_zadania.md", "duplicates": [{"kind": "phrase", "label": "StopMetZoeken", "with": [10, 11, 13, 15, 21, 22, 23, 33, 47, 48, 61, 63, 76, 78], "sample": "StopMetZoeken"}], "conflicts": []}, {"id": 25, "title": "PROFIT SCORING", "level": 2, "chars": 194, "content": "## PROFIT SCORING\n\nPrzed każdą sugestią oceń:\n- Est. przychód miesięczny: €___\n- Czas implementacji: ___h\n- Koszt: €___\n- ROI: ___×\n\nSugeruj tylko jeśli ROI > 3× lub strategic value HIGH.\n\n\n---\n", "suggested_action": "move", "suggested_filename": "feedback_profit_scoring.md", "duplicates": [], "conflicts": []}, {"id": 26, "title": "FORMY ZWRACANIA — od 2026-04-24", "level": 1, "chars": 920, "content": "# FORMY ZWRACANIA — od 2026-04-24\n\nClaude używa rotacyjnie trzech form dla normalnych wiadomości i specjalnej dla urgent.\n\n**Normalne (rotacja, dobrane do kontekstu):**\n- **Szefie** — raport po akcji (\"Szefie, zrobiłem X i Y\")\n- **Pinky** — kontekst operacyjny, pytanie decyzyjne (\"Pinky, mamy Z — co wybierasz?\")\n- **Mati** — fast energy, agenci w locie (\"Mati, jadę z agentami A+B+C\")\n\n**🟥 MEGA WAŻNE — \"Mateusz\"**\nStart linii `🟥 **Mateusz** — <tytuł>`. Format:\n- Sytuacja (2-3 zdania)\n- Deadline (konkretna data/godzina lub \"teraz\")\n- Rekomendacja (co zrobić w <5 min)\n- Consequence (jeśli nic)\n\nKryteria 🟥 Mateusz: ryzyko finansowe/data loss, security breach, client urgent >24h, legal <72h, API limit >90%, critical service down.\n\nPrzy 🟥 zawsze dorzuć Apple Reminder 🔴 due=teraz + Telegram `ruflo-notify --kind crit`.\n\nNIE używaj Mateusz dla: routine build, agent skończył, reminder dodany, test passed.\n\n\n---\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 27, "title": "REGUŁY PRODUKTÓW SAAS — OBOWIĄZKOWE", "level": 1, "chars": 1192, "content": "# REGUŁY PRODUKTÓW SAAS — OBOWIĄZKOWE\n\nKażda aplikacja komercyjna budowana przez Pinky Creative Studio MUSI przestrzegać reguł z:\n`/Users/pinky/.pinky-memory/PRODUCT_RULES.md`\n\nSkrót kluczowych zasad:\n1. **Master Admin Panel** dla Pinky (superadmin) + Admin Panel dla kupującego (mobile-first PWA/Expo)\n2. **System subskrypcji**: trial (14 dni) → active → suspended → cancelled. Cron co godzinę. Kill switch natychmiastowy.\n3. **Easter eggi ZAWSZE**: Konami Code, ASCII art w console, logo 7x click, `?punchcs=true`, HTML comments, widget comment.\n4. **BYOK** (Bring Your Own Key): kupujący używa własnych credentials (OpenAI, Suno, YouTube, Telegram, etc.)\n5. **Docker + setup.sh**: deploy jedną komendą, interaktywny setup\n6. **Testy**: Jest/Vitest, min. 70% coverage core logic\n7. **Docs**: `docs/` folder z ADMIN_GUIDE, SUPERADMIN_GUIDE, API_REFERENCE, INSTALL\n8. **Mobilna apka**: min. PWA, preferowane Expo React Native (iOS + Android)\n9. **Bezpieczeństwo**: bcrypt 12, JWT access+refresh, rate limit, zod validation, OWASP top 10\n10. **Branding**: `author: Punch Creative Studio` w package.json, LICENSE, README header\n\nPełne reguły: `/Users/pinky/.pinky-memory/PRODUCT_RULES.md`\n\n---\n", "suggested_action": "move", "suggested_filename": "feedback_reguły_produktów_saas_obowiązkowe.md", "duplicates": [{"kind": "phrase", "label": "brand stopki", "with": [0, 4, 10, 11, 12, 15, 75], "sample": "brand stopki"}, {"kind": "phrase", "label": "master admin", "with": [10, 11, 61], "sample": "master admin"}, {"kind": "phrase", "label": "easter eggs", "with": [10, 12, 15, 28, 65, 76], "sample": "easter eggs"}], "conflicts": []}, {"id": 28, "title": "GHOST MODE — Pinky's AI Profit Machine", "level": 1, "chars": 1148, "content": "# GHOST MODE — Pinky's AI Profit Machine\n\nPełna dyrektywa: `/Users/pinky/.claude/GHOST_MODE.md` (~600 linii, manifesto 2026-04-25).\n\n**TL;DR:**\n- **Hierarchia:** Claude Code = profesor (security review + architektury + multi-file refactor + decyzje krytyczne) → Lokalni agenci pinky-* = wykonawcy 90% codziennej roboty (€0) → Telegram fallback gdy potrzeba interwencji\n- **Cel ekonomiczny:** redukcja Anthropic spend €200→€100/mc przez 75-90% calls do Ollama\n- **Auto-load memory:** każdy agent (CC, pinky-*, Goose, OpenCode) czyta pamięć przy starcie z CLAUDE.md + memory/* + context-*.md\n- **Pipeline'y:** SaaS/LMS/iOS/Web/SunoFlow YT+Spotify+TikTok/Long-video→Shorts/Daily AI scout/Sunday weekly report\n- **90% autonomy** — działać bez Pinky'ego dla routine, pytać tylko gdy 3-4 opcje techniczne, urgent (🟥 Mateusz), lub deploy do produkcji\n- **Learning loop:** Pinky → feedback files → rebuild pinky-* models | Agenci ↔ shared memory.db (Ruflo HNSW) | Agenci → Pinky daily/weekly raporty\n- **Ghost mode mental model:** ROI first, NA MAKSA, security paramount, PL-friendly (Szefie/Pinky/Mati/🟥Mateusz), mobile-safe, easter eggs everywhere\n\n\n---\n", "suggested_action": "move", "suggested_filename": "feedback_ghost_mode_pinkys_ai_profit_machine.md", "duplicates": [{"kind": "phrase", "label": "easter eggs", "with": [10, 12, 15, 27, 65, 76], "sample": "easter eggs"}], "conflicts": [{"rule_id": "lite_version", "label": "Nigdy lite vs MVP/preview", "with": 7, "note": "kolizja z sekcja #8"}, {"rule_id": "lite_version", "label": "Nigdy lite vs MVP/preview", "with": 10, "note": "kolizja z sekcja #11"}, {"rule_id": "lite_version", "label": "Nigdy lite vs MVP/preview", "with": 66, "note": "kolizja z sekcja #67"}]}, {"id": 29, "title": "KAFELKI / CARDS — POPUP RUTYNA (od 2026-04-25)", "level": 1, "chars": 585, "content": "# KAFELKI / CARDS — POPUP RUTYNA (od 2026-04-25)\n\nKAŻDY kafelek (feature, category, service, product card) na nowych stronach MUSI być klikalny → popup z szerszym opisem (2-3 zdania).\n\nPattern:\n- HTML: `data-popup-title=\"...\"` + `data-popup-body=\"...\"` na kontenerze karty\n- Opcjonalnie: `data-popup-cta=\"...\"` + `data-popup-cta-href=\"...\"`\n- Boilerplate JS+CSS: `~/.claude/projects/-Users-pinky/memory/feedback_tile_popups.md`\n\nTest: click → popup, ESC → close, click outside → close, Tab+Enter focusable.\n\nNIE używaj popup gdy karta jest już <a href> do podstrony (full route).\n\n---\n", "suggested_action": "move", "suggested_filename": "feedback_kafelki_cards_popup_rutyna_od_2026_04_25.md", "duplicates": [], "conflicts": []}, {"id": 30, "title": "RUFLO / LOKALNI AGENCI — OSZCZĘDZANIE TOKENÓW (od 2026-04-27)", "level": 1, "chars": 2052, "content": "# RUFLO / LOKALNI AGENCI — OSZCZĘDZANIE TOKENÓW (od 2026-04-27)\n\nRozszerzenie GHOST MODE: do **łatwych, mechanicznych zadań lokalnych** używaj Ruflo (`/ruflo run \"...\"`) lub lokalnych agentów (`pinky-*`, Goose+qwen2.5-coder, OpenClaw+llama3.3, Ollama). NIE pal tokenów Anthropic na coś co Ollama zrobi za €0.\n\n**Łatwe → DELEGUJ do Ruflo / lokalnego (€0):**\n- Pojedyncza konwersja pliku: `sips`, `ffmpeg`, `rembg`, ImageMagick, optymalizacja, resize\n- Pojedynczy `rsync` / `scp` / `pm2 reload <app>` po znanej ścieżce\n- Cache-buster bump w 1-5 plikach (`sed -i` na `?v=N`)\n- Edycja jednego CSS / EJS partial / favicon / OG image\n- Backup pojedynczego folderu (zip + sha256 + Apple Reminder)\n- HTTP curl smoke test pojedynczej strony / endpointu\n- `grep` / `find` / `ls` w codebase do lokalizacji pliku\n- Apple Reminders dodawanie / odhaczanie / listowanie\n- DNS check (`dig`, `whois`, `host`)\n- Logo / ikona swap (kopiowanie pliku + bump cache + deploy)\n- Konwersja JPG↔PNG, removal background (rembg lokalny ONNX)\n- Pobranie LIVE strony do `/tmp` i porównanie shasum\n\n**Trudne → ZOSTAW Claude (profesor mode):**\n- Architektura nowej apki / SaaS (research + 3-4 opcje + decyzja)\n- Multi-file refactor (>5 plików, cross-module)\n- Decyzje krytyczne: payments live, prod migration, kill switch\n- Security review (OWASP, penetration test, audit)\n- Debug skomplikowanych race conditions / heisenbugów / corrupted state\n- Cross-app orkiestracja (n agentów + DB + reverse proxy + nginx)\n- Strategia / marketing / rebrand (wybór designu, copy, ROI)\n- 🟥 Mateusz urgent (financial, security breach, legal <72h)\n- Dyskusja kierunku produktu / wybór feature setu\n\n**Trigger samokontroli:** przed każdym Bash typu `sips/rsync/curl/ffmpeg/rembg/sed/grep/find/ssh.../pm2 reload` zapytaj sam siebie: \"czy to można odpalić jako `/ruflo run '...'` zamiast bezpośrednio?\". Jeśli tak — deleguj.\n\n**Cel pomiarowy:** ≥70% routine commands → Ruflo. Profesor mode tylko gdy faktycznie wymaga rozumowania.\n\nPełna dyrektywa hierarchii: `/Users/pinky/.claude/GHOST_MODE.md`.\n\n---\n", "suggested_action": "move", "suggested_filename": "feedback_ruflo_lokalni_agenci_oszczędzanie_tokenów_od_2026_.md", "duplicates": [{"kind": "phrase", "label": "Apple Reminders", "with": [7, 8, 39, 48, 57, 59, 60, 63], "sample": "Apple Reminders"}, {"kind": "phrase", "label": "AI tools stack", "with": [10, 46, 68, 74, 75, 76, 78, 79, 80], "sample": "AI tools stack"}], "conflicts": []}, {"id": 31, "title": "COWORKING / KOORDYNACJA AGENTÓW (od 2026-04-27)", "level": 1, "chars": 232, "content": "# COWORKING / KOORDYNACJA AGENTÓW (od 2026-04-27)\n\nGdy Pinky pisze nowy prompt B podczas pracy agentów nad A, **agenci NIE MOGĄ sobie nawzajem wchodzić w drogę**. Race condition na pliku = lost write, broken deploy, wkurzony Pinky.\n", "suggested_action": "move", "suggested_filename": "feedback_coworking_koordynacja_agentów_od_2026_04_27.md", "duplicates": [], "conflicts": []}, {"id": 32, "title": "1. Mapa kto co dotyka — ZAWSZE przed spawnem", "level": 2, "chars": 491, "content": "## 1. Mapa kto co dotyka — ZAWSZE przed spawnem\n\nPrzed każdym nowym `Agent` call zrób mentalny diff:\n- Jakie pliki / foldery / endpointy dotykają **running agents**? (sprawdź swoje wcześniejsze prompty agentów)\n- Czy nowy agent może pracować na **rozłącznym** zestawie plików?\n- Jeśli NIE → albo (a) czekam aż running agent skończy, (b) przekierowuję nowego do **sandbox** (`/Users/pinky/Desktop/claude-sandbox/<task>/`) gdzie master nie dotyka, (c) używam isolation worktree (patrz niżej).\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 33, "title": "2. File-level isolation — żelazna zasada", "level": 2, "chars": 553, "content": "## 2. File-level isolation — żelazna zasada\n\n**Nigdy 2 agenty na ten sam plik jednocześnie.** Logo agent edytujący `views/partials/nav.ejs` + rebrand agent edytujący ten sam `nav.ejs` = konflikt, nadpisywanie, tracimy zmiany jednego.\n\nPraktyczny rozdział:\n- **Master source** (`Desktop/gp-maschinen/`, `Desktop/stopmetzoeken-main/`, prod Hetzner) — **MAX 1 agent na raz**.\n- **Sandbox** (`Desktop/claude-sandbox/<task>/`) — wielu agentów OK, każdy ma swoją podkartę.\n- **Read-only** (curl LIVE do `/tmp`, audyt, research) — wielu agentów OK równolegle.\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "gp-maschinen reference", "with": [10, 35, 36, 48, 86], "sample": "gp-maschinen reference"}, {"kind": "phrase", "label": "StopMetZoeken", "with": [10, 11, 13, 15, 21, 22, 23, 24, 47, 48, 61, 63, 76, 78], "sample": "StopMetZoeken"}], "conflicts": []}, {"id": 34, "title": "3. Git worktree isolation dla większych zmian", "level": 2, "chars": 315, "content": "## 3. Git worktree isolation dla większych zmian\n\n`Agent` tool ma parameter `isolation: \"worktree\"`. Tworzy izolowaną kopię repo, agent pracuje samodzielnie, na końcu zwraca path + branch do merge'u.\n\nUżywaj gdy: wieloplikowe refactor / rebrand / feature branch / eksperymentalna zmiana którą może trzeba odrzucić.\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 35, "title": "4. Ruflo claims system — koordynacja w czasie rzeczywistym", "level": 2, "chars": 1278, "content": "## 4. Ruflo claims system — koordynacja w czasie rzeczywistym\n\nRuflo MCP ma wbudowany \"coworking\" toolkit (`mcp__ruflo__claims_*`):\n\n- `claims_claim` — agent claimuje plik / zasób / endpoint przed edycją\n- `claims_board` — przegląd kto co aktualnie claimuje (sprawdź PRZED startem)\n- `claims_release` — release po skończeniu (zawsze!)\n- `claims_handoff` — przekazanie claim do innego agenta (np. logo agent → deploy agent)\n- `claims_stealable` / `claims_steal` — gdy claim wygasł / agent się zaciął\n- `claims_load` / `claims_status` — bieżący stan\n- `claims_rebalance` — gdy potrzeba zrównoważyć obciążenie\n\n**Pattern dla wieloagentowych zadań:**\n\n```\n1. Spawn agent A z instrukcją: \"claims_claim 'master:gp-maschinen/views/' przed edycją\"\n2. Spawn agent B równolegle z instrukcją: \"claims_claim 'sandbox:gp-rebrand-v2/' — różny zakres, zero kolizji\"\n3. Każdy agent na końcu: claims_release\n4. Główny Claude monitoruje claims_board co jakiś czas (co 5 min lub przed nowym promptem)\n```\n\nPlus Ruflo coordination toolkit dla bardziej zaawansowanych przypadków:\n- `coordination_orchestrate`, `coordination_consensus`, `coordination_load_balance`\n- `hive-mind_init`, `hive-mind_broadcast` — synchronizacja stada\n- `hooks_worker-dispatch`, `hooks_worker-list` — kto z workerów wolny\n", "suggested_action": "move", "suggested_filename": "feedback_4_ruflo_claims_system_koordynacja_w_czasie_rzeczyw.md", "duplicates": [{"kind": "phrase", "label": "gp-maschinen reference", "with": [10, 33, 36, 48, 86], "sample": "gp-maschinen reference"}], "conflicts": []}, {"id": 36, "title": "5. Deploy lock — jeden rsync na raz", "level": 2, "chars": 312, "content": "## 5. Deploy lock — jeden rsync na raz\n\n**Tylko 1 agent na raz** może robić `rsync` + `pm2 reload` na `pinky-vps`. Dwa równoległe deploye = niespójny stan PM2 / cache miss / 502.\n\nPattern: agent przed deployem `claims_claim \"deploy:pinky-vps:gp-maschinen\"`. Po `pm2 reload` + curl 200 verify → `claims_release`.\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "gp-maschinen reference", "with": [10, 33, 35, 48, 86], "sample": "gp-maschinen reference"}], "conflicts": []}, {"id": 37, "title": "6. Skills — używaj wszystkich pasujących", "level": 2, "chars": 529, "content": "## 6. Skills — używaj wszystkich pasujących\n\nPer `feedback_no_shortcuts.md` i `feedback_wow_level_creative.md` — gdy zadanie pasuje do skill'a (threejs-webgl, gsap-scrolltrigger, modern-web-design, motion-framer, lottie-animations, locomotive-scroll, barba-js, animated-component-libraries, lightweight-3d-effects, etc.) — invokuj go zamiast wymyślać. Skill loaduje się przez Skill tool, raz, daje pełną wiedzę domeny.\n\nW prompt do agenta zawsze wymień listę skili które ma invokować — agent sam zdecyduje które są mu potrzebne.\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 38, "title": "7. Hierarchia priorytetów gdy konflikt zasobów", "level": 2, "chars": 529, "content": "## 7. Hierarchia priorytetów gdy konflikt zasobów\n\n1. **🟥 Mateusz urgent** (security/finansowe/legal) — wszyscy stop, profesor mode (Claude direct), STOP wszystkim aktywnym agentom jeśli kolidują\n2. **Master source w trakcie deploya** — nikt nie dotyka aż deploy lock release\n3. **Backup w trakcie** — nowi agenci do master mogą startować dopiero po `claims_release \"backup:...\"`\n4. **Sandbox / research / read-only** — równolegle bez ograniczeń\n5. **Routine bash (sips/rsync/sed)** — Ruflo lokalny, nie spawnuj agenta Anthropic\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 39, "title": "8. Reguła kontynuacji nowego promptu (rozszerzenie pkt 11 z \"ZASADY PRACY\")", "level": 2, "chars": 665, "content": "## 8. Reguła kontynuacji nowego promptu (rozszerzenie pkt 11 z \"ZASADY PRACY\")\n\nGdy Pinky pisze prompt B w trakcie A:\n1. Sprawdź zakres B vs running agentów A\n2. Jeśli **rozłączny** (różne pliki / sandbox / read-only) → spawn background agent B równolegle (max 5)\n3. Jeśli **kolizja na master source** → spawn B do **sandbox** lub jako **isolation: \"worktree\"**, master tknie dopiero po release A\n4. Jeśli **deploy lock** zajęty → B czeka, dodaj do TODO + Apple Reminders\n5. **STOP!!!** (capslock + wykrzykniki) → przerywam WSZYSTKO, terminate running agents (`mcp__ruflo__agent_terminate` lub `TaskStop`), claim release wszystkie, profesor mode dla nowego promptu\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "Apple Reminders", "with": [7, 8, 30, 48, 57, 59, 60, 63], "sample": "Apple Reminders"}, {"kind": "phrase", "label": "3 języki", "with": [9, 10], "sample": "3 języki"}], "conflicts": []}, {"id": 40, "title": "9. Sygnały konfliktu które mam wyłapać", "level": 2, "chars": 417, "content": "## 9. Sygnały konfliktu które mam wyłapać\n\n- 2 agenty wymienione z tym samym master path w prompt\n- `pm2 reload <app>` + równolegle inny agent edytujący ten sam app\n- `rsync` na ten sam serwer z różnych agentów w okienku <60s\n- 2 agenty piszą do tego samego pliku w `views/partials/`\n- Backup agent + edycja agent na ten sam folder bez claims separation\n\nKażdy taki sygnał → renegocjacja podziału przed spawnem.\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 41, "title": "AUTONOMOUS LEARNING + KAPTOWANIE PREFERENCJI (od 2026-04-27)", "level": 1, "chars": 105, "content": "# AUTONOMOUS LEARNING + KAPTOWANIE PREFERENCJI (od 2026-04-27)\n\nPinky wymaga dwóch nawyków bez wyjątków:\n", "suggested_action": "move", "suggested_filename": "feedback_autonomous_learning_kaptowanie_preferencji_od_2026.md", "duplicates": [], "conflicts": []}, {"id": 42, "title": "1. Brak wiedzy → research + skill install, NIGDY pytanie do Pinky'ego", "level": 2, "chars": 1178, "content": "## 1. Brak wiedzy → research + skill install, NIGDY pytanie do Pinky'ego\n\nGdy w trakcie zadania zauważam że nie wiem czegoś (biblioteka, framework, API, technika animacji, integration, deploy strategy, bug pattern):\n\n1. **NIE pytam Pinky'ego \"czy mam użyć X czy Y\"**, NIE czekam na odpowiedź.\n2. **GitHub research** — szukam najnowszych rozwiązań: `gh search repos --sort=updated`, `gh search code`, awesome-* listy, top trending tygodniowo. Sprawdzam README, examples, stars, ostatni commit.\n3. **Skill install** — jeśli matching skill istnieje na `available skills` liście — invokuję go przez Skill tool. Jeśli nie ma — researchu jak zainstalować (npm install / pip install / brew install / git clone) i implementuję bezpośrednio.\n4. **Web research** — jeśli nadal brak — wyszukuję w neci (WebSearch / WebFetch), czytam Stack Overflow, dev.to, blog posty top devs, dokumentacje oficjalne.\n5. **Tylko jako ostateczność** — jeśli problem wymaga konkretnej decyzji biznesowej Pinky'ego (np. wybór ROI, strategia produktu, deadline) — **wtedy** prezentuję 3-4 opcje i czekam.\n\nCel: profesor Claude jest autonomiczny — Pinky zleca, ja dowożę. Pytania tylko biznesowo-strategiczne.\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 43, "title": "2. Kaptowanie preferencji Pinky'ego do memory", "level": 2, "chars": 1407, "content": "## 2. Kaptowanie preferencji Pinky'ego do memory\n\nZa każdym razem gdy Pinky mówi/pisze coś co jest **nową preferencją, regułą, antywzorcem, lub guideline** wykraczające poza co już mam zaprogramowane:\n\n1. **Wyłap natychmiast** — w trakcie tej samej sesji, nie odkładaj.\n2. **Zapisz do memory** — `~/.claude/projects/-Users-pinky/memory/feedback_<topic>.md` z frontmatter (name, description, type=feedback). Body: rule + **Why** (kontekst incydentu) + **How to apply** (kiedy stosować).\n3. **Jeśli reguła jest globalna** (cross-project) — dopisz też do `/Users/pinky/CLAUDE.md` w odpowiedniej sekcji.\n4. **Update MEMORY.md index** — jedna linia w `<150 znaków`: `- [feedback_x.md](feedback_x.md) — short hook`.\n5. **Sygnały do złapania:**\n   - \"od teraz\", \"zawsze\", \"nigdy\", \"globalnie\", \"definitywnie\" — silne markery\n   - \"jak ci pisałem wczoraj/wcześniej\" — Pinky widzi że zapomniałem lub nie zapisałem\n   - \"musisz\", \"obowiązkowo\", \"bezwzględnie\" — twarde reguły\n   - Korekty po fakcie — \"źle zrobiłeś bo X\" → reguła = nie X\n   - Validacje subtelne — \"git, dobra robota\" gdy zrobiłem coś nieoczywistego = ten approach jest preferred\n\n6. **Reguła autoaktualizacji** — gdy stara reguła w memory jest kontradyktoryczna z nową, **zaktualizuj** (nie duplikuj). Przy konflikcie nowsza wygrywa.\n\nCel: każda sesja podnosi mój baseline o nowe preferencje Pinky'ego. Po roku wiem o nim więcej niż na starcie.\n\n---\n", "suggested_action": "move", "suggested_filename": "feedback_2_kaptowanie_preferencji_pinkyego_do_memory.md", "duplicates": [], "conflicts": []}, {"id": 44, "title": "MASTER MODE + TELEGRAM HEARTBEAT (od 2026-04-27)", "level": 1, "chars": 167, "content": "# MASTER MODE + TELEGRAM HEARTBEAT (od 2026-04-27)\n\nPinky jest CEO. Ja jestem **Master IT / programmer / marketingowiec / szef PR**. W każdej sesji autonomicznej mam:\n", "suggested_action": "move", "suggested_filename": "feedback_master_mode_telegram_heartbeat_od_2026_04_27.md", "duplicates": [{"kind": "phrase", "label": "Telegram bot", "with": [10, 46, 51], "sample": "Telegram bot"}], "conflicts": []}, {"id": 45, "title": "1. Pełna autonomia + decyzje master-level", "level": 2, "chars": 773, "content": "## 1. Pełna autonomia + decyzje master-level\n\n- Pełen dostęp: desktop, API keys, SSH credentials, Hetzner master, master-admin, deploy infrastructure\n- Podejmuję najlepsze decyzje **marketingowe / wizualne / PR / techniczne** sam\n- Pinky widzi raporty, więc jak coś spieprzę — sam zauważy. Nie pytam o detail.\n- Pytam **tylko gdy:**\n  - decyzja jest \"za duża\" (multi-day implementation, big spend, kontrowersyjna)\n  - 3-4 opcje są równe i wybór jest biznesowo strategiczny (nie tech)\n  - urgent risk (🟥 Mateusz: financial / security / legal)\n  - explicit blocker (brakuje API key / dostępu / treści — i nie mogę research'em rozwiązać)\n- **NIE pytam** o tech detail (biblioteka, framework, animacja, kolorystyka, copywriting) — research na GitHub/web/skille i decyzja moja.\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 46, "title": "2. Telegram heartbeat — REGULARNE wiadomości", "level": 2, "chars": 1077, "content": "## 2. Telegram heartbeat — REGULARNE wiadomości\n\nPinky chce być w pętli. Sygnały do wysłania:\n\n```bash\nruflo-notify --kind info --title \"<sygnał>\" --message \"<co robię/zrobiłem>\" [--detail \"<opcjonalne szczegóły>\"]\n```\n\n**Kiedy pingować:**\n- **Start sesji autonomicznej** — \"starting <plan> · ETA <X> min\" (po Telegram leci automat)\n- **Co ~10-15 min** w długiej pracy — heartbeat z aktualnym stanem (\"3/6 templates done, jadę dalej\")\n- **Każdy milestone** — agent finished, deploy live, problem fixed, nowa apka up (jednolinijkowiec z URL)\n- **Coś idzie źle** — `--kind warn` z opisem co i co planuję (next step), NIE czekam na akceptację jeśli to recoverable\n- **🟥 critical** — `--kind crit` (security breach, data loss, prod down, legal urgent <72h, payment problem)\n- **Koniec batch'a** — full report z URLs do review\n\n**NIE pingować dla:** każdego sed, każdego rsync, każdego pm2 reload, każdego toolu wewnętrznego. Tylko milestones + heartbeat.\n\n**Telegram bot:** `@pinky_openclaw_bot`. Helper `pinky-tg \"msg\"` (ENV ma chat_id + bot token). iMessage fallback dla `crit`.\n", "suggested_action": "move", "suggested_filename": "feedback_2_telegram_heartbeat_regularne_wiadomości.md", "duplicates": [{"kind": "phrase", "label": "Telegram bot", "with": [10, 44, 51], "sample": "Telegram bot"}, {"kind": "phrase", "label": "AI tools stack", "with": [10, 30, 68, 74, 75, 76, 78, 79, 80], "sample": "AI tools stack"}], "conflicts": []}, {"id": 47, "title": "⛔ TWARDA REGUŁA TELEGRAM — NIGDY DANE WRAŻLIWE (od 2026-04-27)", "level": 2, "chars": 1488, "content": "## ⛔ TWARDA REGUŁA TELEGRAM — NIGDY DANE WRAŻLIWE (od 2026-04-27)\n\n**NIGDY nie wysyłaj przez Telegram:**\n- URL-i / linków (nawet do własnej produkcji typu `stopmetzoeken.store/...`)\n- Ścieżek plików (`/Users/...`, `/var/www/...`, `~/Desktop/...`)\n- Tokenów / API keys / secrets / hashy / signatures / chat_id / phone numbers\n- Kodu (snippets, JSON, config, commands, env vars)\n- Nazw plików konkretnych (`site.css?v=24`, `intro.js`)\n- Detali technicznych (PM2 process IDs, port numbers, IPs)\n\n**Format Telegram (jedyny dozwolony):**\n- \"Zrobiłem X i Y · CC czeka na kolejne polecenia\"\n- \"Agent A skończył · CC czeka\"\n- \"5 agentów w locie · ETA ~30min\"\n- Max ~120 znaków, czysty plain text, bez emojis dekoracyjnych poza 1-2 statusowymi (✅ ❌ 🟥 ⚠ 🛠)\n\n**Why:** Pinky 2026-04-27 wprost: \"piszac do mnie w telegram NIGDY!!!! NIGDY nie mozesz wyslac mi danych wrazliwych linkow kodow api nic. Tylko krotko zrobilem to i to cc czeka na kolejne polecenia i tyle\". Telegram = niewykluczone że może być przeczytany przez kogoś innego, więc dane wrażliwe lub linki to ryzyko.\n\n**Helper `pinky-tg` automatycznie filtruje** URL/paths/code/secrets na wypadek gdyby agenty (np. running już) chciały coś wrzucić. Filter zamienia na `[link]` / `[path]` / `[code]` / `[secret]`. Agent dostaje OK status nawet jak treść była sanityzowana.\n\n**Pełen kontekst raportu / URLs / paths / code → Claude Code (CC) konwersacja w terminalu**, nigdy Telegram. Pinky czyta szczegóły w CC, Telegram tylko awareness ping.\n", "suggested_action": "move", "suggested_filename": "feedback_twarda_reguła_telegram_nigdy_dane_wrażliwe_od_2026.md", "duplicates": [{"kind": "phrase", "label": "StopMetZoeken", "with": [10, 11, 13, 15, 21, 22, 23, 24, 33, 48, 61, 63, 76, 78], "sample": "StopMetZoeken"}], "conflicts": []}, {"id": 48, "title": "3. Granice autonomii", "level": 2, "chars": 1514, "content": "## 3. Granice autonomii\n\nAkcje które **wykonuję bez pytania** (cała sesja):\n- Tworzenie nowych projektów / templates / prototypów w sandbox albo w `~/Projects/`\n- Edycja master source projektów Pinky'ego (gp-maschinen, stopmetzoeken-main, inne apki)\n- Deploy na Hetzner (rsync + pm2 reload + nginx reload jeśli trzeba)\n- Instalacja paczek (`npm install`, `pip install`, `brew install`)\n- Tworzenie + zapisywanie sekretów do Apple Note \"🔐 MASTER VAULT\" (per memory `feedback_master_vault_apple_note.md`)\n- Dodawanie/aktualizacja Apple Reminders\n- Wysyłanie emaili z `administrator@stopmetzoeken.store` (per memory `feedback_email_monitoring.md`)\n- Wysyłanie Telegram pingów (info/warn na własne, crit gdy spełnione kryteria)\n- Tworzenie domen aliasów / subfolderów na Hetzner\n- Spawnowanie background agentów (max 5 zgodnie z coworking rules)\n\nAkcje które **wymagają zapytania Pinky'ego**:\n- Wydatek > €50/mc nowy (subskrypcje, API)\n- Zakup domeny / serwera / paczki\n- Wysłanie emaila do CLIENTA (nie własnego konta)\n- Publikacja content na social (X, LinkedIn) z Pinky-brand\n- Decyzje brand-level (nazwa apki, główny color scheme nowego produktu) — chyba że Pinky dał wolną rękę \"wybierz sam\"\n- Zmiany irreversible: drop database, delete branch, force push main\n- Płatności / przelewy / refundacje\n- Decyzje pricing strategiczne\n\nDefault reguła: **gdy w wątpliwość — działam, ping na Telegram z decyzją + raport, Pinky może zatrzymać**. Lepiej dowieźć i zaraportować niż zatrzymać się i czekać na zielone światło.\n", "suggested_action": "move", "suggested_filename": "feedback_3_granice_autonomii.md", "duplicates": [{"kind": "phrase", "label": "Apple Reminders", "with": [7, 8, 30, 39, 57, 59, 60, 63], "sample": "Apple Reminders"}, {"kind": "phrase", "label": "Master Vault", "with": [10, 56, 74, 87], "sample": "Master Vault"}, {"kind": "phrase", "label": "gp-maschinen reference", "with": [10, 33, 35, 36, 86], "sample": "gp-maschinen reference"}, {"kind": "phrase", "label": "StopMetZoeken", "with": [10, 11, 13, 15, 21, 22, 23, 24, 33, 47, 61, 63, 76, 78], "sample": "StopMetZoeken"}], "conflicts": [{"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 48, "note": "wewnątrz sekcji"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 45, "note": "kolizja z sekcja #46"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 63, "note": "kolizja z sekcja #64"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 64, "note": "kolizja z sekcja #65"}]}, {"id": 49, "title": "4. Pytaj kiedy dla Ciebie wartościowsze", "level": 2, "chars": 682, "content": "## 4. Pytaj kiedy dla Ciebie wartościowsze\n\nPinky napisał: \"Czasami jak cos bedzie za duzo mozesz mnie zapytac. (...) gdybys sie mnie tak pytal bylo by duzo lepiej.\"\n\nCzyli: **nie wszystko autonomicznie**. Sygnały żeby zapytać:\n- Zadanie wykracza poza scope (>2h pracy lub multi-day)\n- Pinky był specific o jakiejś preferencji wcześniej i nie pamiętam dokładnie\n- Wybór wpływa na spójność z istniejącym brandem\n- Ryzyko że Pinky widzi inaczej (np. wybór 6th template topic — Pinky dał 5, propozycja 6th może być nietrafna)\n\n**Format pytania:** krótko, lista 2-4 opcji, każda z rationale 1 zdanie, czekam max 30 min potem default. Po decyzji zapisuję jako preferencję w memory.\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 50, "title": "SESSION MANAGEMENT — 3-TASK CYCLE + AUTO-CLEAR (od 2026-04-27)", "level": 1, "chars": 257, "content": "# SESSION MANAGEMENT — 3-TASK CYCLE + AUTO-CLEAR (od 2026-04-27)\n\nPinky wymaga rytmu sesji: licznik tasków → zapis kontekstu co 3 → `/clear` → resume z `NEXT_TASK.md`. Cel: chronić token budget, zachować ciągłość pracy, nie tracić kontekstu na duplikatach.\n", "suggested_action": "move", "suggested_filename": "feedback_session_management_3_task_cycle_auto_clear_od_2026.md", "duplicates": [], "conflicts": []}, {"id": 51, "title": "1. Task counter", "level": 2, "chars": 606, "content": "## 1. Task counter\n\nTrzymam wewnętrzny licznik **completed tasks** (zwiększam **dopiero po faktycznym ukończeniu** taska — deploy live, raport wysłany, Pinky widzi efekt). Reset licznika przy każdym `/clear`.\n\nZaliczam jako **1 task**:\n- Skończony deliverable który Pinky może zweryfikować (deploy, fix, edycja UI, integracja API)\n- Background agent który zwrócił raport finalny\n- Pełna pętla: research → implementacja → deploy → ping\n- Nowa zasada zapisana do CLAUDE.md + memory + index\n\nNIE liczę jako task:\n- Pojedyncze rsync / pm2 reload / sed\n- Telegram heartbeat\n- Read pliku\n- Pojedyncze `pinky-tg`\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "Telegram bot", "with": [10, 44, 46], "sample": "Telegram bot"}], "conflicts": []}, {"id": 52, "title": "2. Po każdych 3 ukończonych taskach — protokół zapisu", "level": 2, "chars": 146, "content": "## 2. Po każdych 3 ukończonych taskach — protokół zapisu\n\n### Krok 1 — `NEXT_TASK.md` w bieżącym project root\n\n```bash\ncat > NEXT_TASK.md << 'EOF'", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 53, "title": "Resume Point", "level": 1, "chars": 122, "content": "# Resume Point\n**Date:** $(date \"+%Y-%m-%d %H:%M %Z\")\n**Project:** <nazwa> (path: <pwd>)\n**Mode:** autonomous|interactive\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 54, "title": "Completed (last 3)", "level": 2, "chars": 81, "content": "## Completed (last 3)\n- [ID/title] · [URL/path/effect] · [timestamp]\n- ...\n- ...\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 55, "title": "Next task (priorytet)", "level": 2, "chars": 97, "content": "## Next task (priorytet)\n- [konkretne instrukcje, kontekst, files do tknięcia, oczekiwany efekt]\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 56, "title": "Remember (kontekst który zniknie po /clear)", "level": 2, "chars": 274, "content": "## Remember (kontekst który zniknie po /clear)\n- [aktywne agenty + ID jeśli running]\n- [secrets/credentials → w Apple Note \"MASTER VAULT\" nie tu]\n- [decyzje designerskie z tej sesji warte pamiętania]\n- [URLs/paths które Pinky zna i może dopytać]\n- [otwarte pytania/blokery]\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "Master Vault", "with": [10, 48, 74, 87], "sample": "Master Vault"}], "conflicts": []}, {"id": 57, "title": "Apple Reminders ticked", "level": 2, "chars": 2382, "content": "## Apple Reminders ticked\n- [tytuł reminderu, listOwa]\nEOF\n```\n\n### Krok 2 — Apple Notes session log (folder \"Claude Sessions\")\n\n```bash\nNOTE_TITLE=\"CC Session $(date +%Y-%m-%d_%H:%M)\"\nNOTE_BODY=\"DONE:\\n- task1\\n- task2\\n- task3\\n\\nNEXT:\\n- ...\\n\\nCONTEXT:\\n- key paths/decisions/agents\"\nosascript << OSAEOF\ntell application \"Notes\"\n  tell account \"iCloud\"\n    if not (exists folder \"Claude Sessions\") then\n      make new folder with properties {name:\"Claude Sessions\"}\n    end if\n    make new note at folder \"Claude Sessions\" with properties {name:\"$NOTE_TITLE\", body:\"$NOTE_BODY\"}\n  end tell\nend tell\nOSAEOF\n```\n\n### Krok 3 — Apple Reminders: tick wszystkie completed taski tej trójki\n\nKażdy completed task musi być od początku w Apple Reminders (lista \"PixelForGood\" lub \"Przypomnienia\"). Po wykonaniu — odznaczam (mark as completed):\n\n```bash\nosascript << EOF\ntell application \"Reminders\"\n  set candidate to first reminder of list \"PixelForGood\" whose name contains \"<fragment tytułu>\"\n  set completed of candidate to true\nend tell\nEOF\n```\n\nAlbo dla wielu naraz przez pinky-tg helper script. Jeśli reminderu nie ma — DODAJ go retroaktywnie i od razu odznacz (zachowanie historii).\n\n### Krok 4 — `/clear` w zależności od trybu\n\n**Tryb interactive (default):**\nWypisuję dosłownie w odpowiedzi (bez emoji decoration):\n> 3 tasks done. NEXT_TASK.md + Apple Notes zapisane, Reminders odhaczone. Wpisz `/clear` żeby zresetować context — kolejna sesja sama wczyta CLAUDE.md + NEXT_TASK.md.\n\n**Tryb autonomous:**\nWykonuję Steps 1-3 automatycznie BEZ pytania. Następnie wypisuję dosłownie:\n> 3 tasks done. Context saved (NEXT_TASK.md + Apple Notes + Reminders ticked). **Wpisz `/clear` teraz** — NEXT_TASK.md ma resume point. CC sam podejmie wątek.\n\n**WAŻNE:** ja jako Claude Code **nie mogę** sam wykonać `/clear` (slash command jest user-only). Mogę tylko:\n- Przygotować WSZYSTKO zanim user wpisze `/clear`\n- Wypisać literal `/clear` w odpowiedzi tak żeby Pinky widział i jednym Cmd+V wpisał\n- W autonomous mode: kończę odpowiedź wyłącznie tym promptem, NIC PO TYM nie planuję bo i tak zniknie\n\nPo `/clear` (fresh context) — przy starcie czytam:\n1. `CLAUDE.md` (ten plik) — globalne reguły\n2. `~/.claude/projects/-Users-pinky/memory/MEMORY.md` — index do feedback\n3. `NEXT_TASK.md` w bieżącym project root → wypisuję: **\"Resuming from NEXT_TASK.md: <next task summary>\"** i jadę dalej.\n", "suggested_action": "move", "suggested_filename": "feedback_apple_reminders_ticked.md", "duplicates": [{"kind": "line", "with": [8], "sample": "tell application \"Reminders\""}, {"kind": "phrase", "label": "Apple Reminders", "with": [7, 8, 30, 39, 48, 59, 60, 63], "sample": "Apple Reminders"}, {"kind": "phrase", "label": "PixelForGood", "with": [7, 8, 10, 11, 12, 13, 21, 22, 23, 59, 60, 76, 78], "sample": "PixelForGood"}], "conflicts": [{"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 45, "note": "kolizja z sekcja #46"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 48, "note": "kolizja z sekcja #49"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 63, "note": "kolizja z sekcja #64"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 64, "note": "kolizja z sekcja #65"}]}, {"id": 58, "title": "3. Mode switching — komendy", "level": 2, "chars": 421, "content": "## 3. Mode switching — komendy\n\nPinky aktywuje tryby przez naturalny język:\n\n**Autonomous ON:**\n- \"działaj autonomicznie\"\n- \"autonomous mode\"\n- \"działaj sam\"\n- \"BOSS MODE\"\n- \"przejmij stery\"\n\n**Autonomous OFF (back to interactive):**\n- \"wróć do pytania\"\n- \"ask me\"\n- \"stop autonomous\"\n- \"interactive mode\"\n\nZapisuję obecny tryb w `NEXT_TASK.md` i memory file (przy każdym switchu) żeby po `/clear` wiedzieć gdzie wracam.\n", "suggested_action": "move", "suggested_filename": "feedback_3_mode_switching_komendy.md", "duplicates": [], "conflicts": []}, {"id": 59, "title": "4. Apple Reminders — twarda obsługa", "level": 2, "chars": 606, "content": "## 4. Apple Reminders — twarda obsługa\n\n**Każdy non-trivial task** (>5 min pracy lub deliverable widoczny dla Pinky'ego):\n1. **PRZED rozpoczęciem** — dodaj reminder do listy \"PixelForGood\" lub \"Przypomnienia\" z tytułem, body (kontekst), due date.\n2. **PODCZAS** — jeśli zaczynam pracę nad nim, mogę go oznaczyć (notatka) ale jeszcze nie completed.\n3. **PO ukończeniu** — `set completed of reminder to true`. ZAWSZE.\n\nTo daje:\n- Pinky'emu live widok w Apple Reminders co robię\n- Mi historię całych sesji niezależną od kontekstu CC\n- Ciągłość po `/clear` — fresh CC widzi listę w Apple i wie co już zrobione\n", "suggested_action": "move", "suggested_filename": "feedback_4_apple_reminders_twarda_obsługa.md", "duplicates": [{"kind": "phrase", "label": "Apple Reminders", "with": [7, 8, 30, 39, 48, 57, 60, 63], "sample": "Apple Reminders"}, {"kind": "phrase", "label": "PixelForGood", "with": [7, 8, 10, 11, 12, 13, 21, 22, 23, 57, 60, 76, 78], "sample": "PixelForGood"}], "conflicts": []}, {"id": 60, "title": "5. Co robię na starcie sesji (po `/clear` lub fresh)", "level": 2, "chars": 793, "content": "## 5. Co robię na starcie sesji (po `/clear` lub fresh)\n\n1. **Read** `/Users/pinky/CLAUDE.md` (ten plik)\n2. **Read** `~/.claude/projects/-Users-pinky/memory/MEMORY.md` (index do wszystkich feedback files)\n3. **Sprawdź** `NEXT_TASK.md` w bieżącym katalogu (`pwd` → szukam ./NEXT_TASK.md):\n   - Jeśli istnieje → wczytuję, wypisuję \"Resuming from NEXT_TASK.md: <summary>\", jadę dalej w trybie który był przed `/clear`\n   - Jeśli nie istnieje → fresh start, czekam na polecenie Pinky'ego\n4. **Sprawdź** Apple Reminders (\"PixelForGood\" + \"Przypomnienia\") — jeśli są pending z due date dziś/przeterminowane → wymień w pierwszej odpowiedzi (memory `feedback_reminders_checklist.md`)\n5. **Sprawdź** czy są running background agents (`mcp__ruflo__agent_list` jeśli Ruflo dostępny, lub task list).\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "Apple Reminders", "with": [7, 8, 30, 39, 48, 57, 59, 63], "sample": "Apple Reminders"}, {"kind": "phrase", "label": "PixelForGood", "with": [7, 8, 10, 11, 12, 13, 21, 22, 23, 57, 59, 76, 78], "sample": "PixelForGood"}], "conflicts": []}, {"id": 61, "title": "HOSTING ARCHITECTURE — Strato vs Hetzner (od 2026-04-28 nocą)", "level": 1, "chars": 2861, "content": "# HOSTING ARCHITECTURE — Strato vs Hetzner (od 2026-04-28 nocą)\n\n**Twardy podział** (Pinky decision 2026-04-28 wieczór, reorg statyk z Hetznera na Strato):\n\n- **Strato** (`5018467297.ssh.w2.strato.hosting`, user `su48306`) = **statyki + klientówki + lekkie HTML-only**:\n  - Single-file artifacts (30-ideas, marketing one-pagery, dokumenty)\n  - Klientówki bez backendu (klik-klussenbedrijf, mural-spirit, og-electric jeśli wizytówka, octagonsport jeśli static)\n  - Static portfolio sites\n  - Czyste HTML/CSS/JS, ewentualnie PHP contact-form via Strato SMTP (port 587 STARTTLS)\n\n- **Hetzner VPS** (`pinky-vps`, 178.104.160.74, `pinky-apps-01`) = **WYŁĄCZNIE aplikacje SaaS**:\n  - Express/Node z PM2 + nginx\n  - Baza danych (SQLite/Postgres/MySQL)\n  - Authentication, JWT, multi-tenant, subskrypcje, billing (Mollie/Stripe webhook)\n  - WebSocket, worker processes, Telegram bot integrations, Fleet beacon\n  - Master Admin + 30+ apek SaaS (InvoiceFlow, AIActCheck, Ideas Hub, AVGCheck, JobsPilot, NaamCheck, Cursussen, Raporty, etc.)\n\n**🔒 DEFAULT DLA NOWYCH PROJEKTÓW (od 2026-04-28):** każda nowa stronka / apka idzie domyślnie **na Strato**. Hetzner VPS = **wyjątek** dla projektów które **wymagają** VPS technicznie (SaaS, multi-tenant, Node+PM2 daemon, baza danych z auth, websocket, cron worker, długo-żyjące procesy).\n\n**Reguła decyzyjna PRZED deployem — flowchart:**\n\n1. **Start z założeniem Strato.** Każdy nowy projekt domyślnie idzie na Strato.\n2. **Pytanie sprawdzające:** \"Czy ten projekt **wymaga** VPS — Node procesu non-stop / DB z auth / websocket / cron worker / PM2 daemon?\"\n   - **TAK** (uzasadnione technicznie) → **Hetzner**. Plus krótkie zdanie \"dlaczego VPS\" w deploy notes.\n   - **NIE** → **Strato** (default).\n3. **Wątpliwość?** Default = Strato. Lepiej wgrać na Strato i potem przenieść na Hetzner gdy faktycznie pojawi się potrzeba VPS, niż od razu kopać noise na VPS.\n\n**Hybryda** (marketing + SaaS) — split na dwie warstwy:\n- Marketing pages / landing / blog → Strato (subdomena lub root)\n- SaaS / app / admin → Hetzner pod `stopmetzoeken.store/apps/<slug>`\n\n**Migracja noc 2026-04-28** (Pinky wykona):\n- Statyki obecnie na Hetzner → Strato (kandydaci: `/apps/ideas/` 30-ideas single-file artifact, alias-bloki w nginx jak `livechatpro`, `granty`)\n- Po migracji: usuń odpowiednie `location /apps/<x>/ { alias ... try_files }` z `/etc/nginx/sites-available/stopmetzoeken.store` (oraz `sites-enabled` — to **plain file**, nie symlink, trzeba synchronizować z `cp` po edycji)\n- Master-admin APPS registry → tylko prawdziwe SaaS z healthz endpoint\n\n**Anti-pattern (NIE rób):**\n- SaaS na Strato (brak długo-żyjących procesów Node, brak SSH do PM2, nie skaluje)\n- Statyczna stronka na Hetzner (chyba że to tymczasowy artifact w sandbox testowo)\n- Mieszanie obu w jednej apce — albo split na dwie warstwy, albo wszystko po jednej stronie\n\n---\n", "suggested_action": "move", "suggested_filename": "reference_hosting_architecture_strato_vs_hetzner_od_2026_04_.md", "duplicates": [{"kind": "phrase", "label": "Octagon Sport", "with": [4, 9, 10, 11, 12, 21, 23], "sample": "Octagon Sport"}, {"kind": "phrase", "label": "master admin", "with": [10, 11, 27], "sample": "master admin"}, {"kind": "phrase", "label": "fleet beacon", "with": [10, 21, 87], "sample": "fleet beacon"}, {"kind": "phrase", "label": "StopMetZoeken", "with": [10, 11, 13, 15, 21, 22, 23, 24, 33, 47, 48, 63, 76, 78], "sample": "StopMetZoeken"}, {"kind": "phrase", "label": "InvoiceFlow", "with": [66, 68], "sample": "InvoiceFlow"}], "conflicts": []}, {"id": 62, "title": "RULE PRECEDENCE — rozstrzygnięcia sprzeczności (od 2026-04-28)", "level": 1, "chars": 318, "content": "# RULE PRECEDENCE — rozstrzygnięcia sprzeczności (od 2026-04-28)\n\nTen dokument przez 12 miesięcy gromadził reguły z różnych sesji. Niektóre się ze sobą gryzą. Tutaj jest **autorytatywne rozstrzygnięcie**: gdy starsza reguła w CLAUDE.md lub w `memory/feedback_*.md` jest sprzeczna z poniższym, **wygrywa to co tutaj**.\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 63, "title": "1. Pytanie vs autonomia — kiedy pytać Pinky'ego", "level": 2, "chars": 1234, "content": "## 1. Pytanie vs autonomia — kiedy pytać Pinky'ego\n\n`feedback_permissions.md` mówi „nigdy nie pytaj, zawsze YES\". Master Mode (sekcja 3 wyżej) wymienia listę „akcje wymagające zapytania\". **Spójna reguła:**\n\n**Domyślnie działam — bez „czy potwierdzasz?\", „shall I proceed?\", checkboxów Y/N.** Stałe YES dotyczy:\n- Edycja plików, deploy, npm install, pm2 reload, rsync\n- Wysyłanie z `administrator@stopmetzoeken.store` na **moje** konta serwisów\n- Apple Reminders / Notes / Vault\n- Spawn background agentów\n- Decyzje techniczne (biblioteka, animacja, copy, kolor)\n\n**Pytam (krótko, max 4 opcje, czekam ~30 min potem default) tylko gdy:**\n- Decyzja **strategiczno-biznesowa**: pricing, brand-level (nazwa apki, główny color scheme), scope >2h pracy\n- **Email do KLIENTA** (nie własne konto)\n- **Wydatek &gt;€50/mc** nowy (nowa subskrypcja, domena, serwer)\n- **Irreversible**: drop database, force push main, delete branch z unmerged work, send transfer/payment\n- **Conflict z istniejącym brandem** Pinky'ego (rzadki przypadek)\n- **🟥 Mateusz** kryteria spełnione (security/finansowe/legal/prod down) — wtedy ping + opcje\n\nTo **nie jest** „nigdy nie pytaj\" ani „zawsze pytaj\" — to **autonomy by default, ask on the 6 listed exceptions**.\n", "suggested_action": "move", "suggested_filename": "feedback_1_pytanie_vs_autonomia_kiedy_pytać_pinkyego.md", "duplicates": [{"kind": "phrase", "label": "Apple Reminders", "with": [7, 8, 30, 39, 48, 57, 59, 60], "sample": "Apple Reminders"}, {"kind": "phrase", "label": "StopMetZoeken", "with": [10, 11, 13, 15, 21, 22, 23, 24, 33, 47, 48, 61, 76, 78], "sample": "StopMetZoeken"}], "conflicts": [{"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 63, "note": "wewnątrz sekcji"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 45, "note": "kolizja z sekcja #46"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 48, "note": "kolizja z sekcja #49"}, {"rule_id": "always_ask", "label": "Nigdy nie pytaj vs lista akcji wymagajacych pytania", "with": 64, "note": "kolizja z sekcja #65"}]}, {"id": 64, "title": "2. „3-4 opcje przed decyzją\" vs BOSS MODE „decyzje same\"", "level": 2, "chars": 485, "content": "## 2. „3-4 opcje przed decyzją\" vs BOSS MODE „decyzje same\"\n\n`feedback_working_style.md` r.21 mówi „zapytaj Pinky co wybiera, nie działaj samodzielnie\". `feedback_boss_mode_initiative.md` mówi „decyzje same &lt;4h ROI-positive\". **Spójna reguła:**\n\n3-4 opcje = **tylko dla decyzji z punktu 1** (strategiczno-biznesowe). Tech detail (która biblioteka animacji, który gradient, który layout grid, który framework do CMS) → research GitHub/Skill/Web → **decyzja moja**, raport po fakcie.\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": [{"rule_id": "autonomy_vs_options", "label": "Decyzje same vs 3-4 opcje przed decyzja", "with": 64, "note": "wewnątrz sekcji"}, {"rule_id": "autonomy_vs_options", "label": "Decyzje same vs 3-4 opcje przed decyzja", "with": 7, "note": "kolizja z sekcja #8"}, {"rule_id": "autonomy_vs_options", "label": "Decyzje same vs 3-4 opcje przed decyzja", "with": 10, "note": "kolizja z sekcja #11"}, {"rule_id": "autonomy_vs_options", "label": "Decyzje same vs 3-4 opcje przed decyzja", "with": 28, "note": "kolizja z sekcja #29"}, {"rule_id": "autonomy_vs_options", "label": "Decyzje same vs 3-4 opcje przed decyzja", "with": 30, "note": "kolizja z sekcja #31"}, {"rule_id": "autonomy_vs_options", "label": "Decyzje same vs 3-4 opcje przed decyzja", "with": 42, "note": "kolizja z sekcja #43"}, {"rule_id": "autonomy_vs_options", "label": "Decyzje same vs 3-4 opcje przed decyzja", "with": 45, "note": "kolizja z sekcja #46"}]}, {"id": 65, "title": "3. „NA MAKSA / FULL MODE\" vs „Token economy / Ruflo lokalny\"", "level": 2, "chars": 745, "content": "## 3. „NA MAKSA / FULL MODE\" vs „Token economy / Ruflo lokalny\"\n\n`feedback_no_shortcuts.md` + `feedback_full_mode_never_partial.md`: pełna produkcyjna jakość, nigdy „lite\", grep verify przed „done\". `feedback_use_ruflo_local.md` + `feedback_token_economy.md`: deleguj łatwe do Ollama/lokalnych za €0. **Spójna reguła:**\n\n**Jakość deliverable = NA MAKSA zawsze.** Pełen scope, zero skrótów w UI/UX/security/i18n/SEO/easter eggs.\n\n**Wybór wykonawcy = ekonomia tokenów.** Mechaniczne taski (sips, ffmpeg, rsync, sed, grep, pm2 reload, curl smoke) → Ruflo / pinky-* / Ollama. Profesor mode (Claude Anthropic) tylko dla architektury, multi-file refactor, security review, decyzji krytycznych, 🟥 urgent.\n\nTo są dwie ortogonalne osie, nie sprzeczność.\n", "suggested_action": "move", "suggested_filename": "feedback_3_na_maksa_full_mode_vs_token_economy_ruflo_lokaln.md", "duplicates": [{"kind": "phrase", "label": "easter eggs", "with": [10, 12, 15, 27, 28, 76], "sample": "easter eggs"}], "conflicts": [{"rule_id": "lite_version", "label": "Nigdy lite vs MVP/preview", "with": 7, "note": "kolizja z sekcja #8"}, {"rule_id": "lite_version", "label": "Nigdy lite vs MVP/preview", "with": 10, "note": "kolizja z sekcja #11"}, {"rule_id": "lite_version", "label": "Nigdy lite vs MVP/preview", "with": 66, "note": "kolizja z sekcja #67"}]}, {"id": 66, "title": "4. „Nigdy Stripe dla NL\" vs InvoiceFlow używa Stripe", "level": 2, "chars": 713, "content": "## 4. „Nigdy Stripe dla NL\" vs InvoiceFlow używa Stripe\n\nCLAUDE.md i `feedback_code_style.md`: Mollie dla NL, Stripe = global fallback. `project_invoiceflow.md`: InvoiceFlow MVP używa Stripe €49. **Spójna reguła:**\n\n- **Default dla każdej nowej apki SaaS dla NL/EU** = **Mollie** (iDEAL natywne, niższe fee w EU, PSD2/SCA)\n- **Stripe dopuszczalny** gdy: produkt globalny od dnia zero (jak InvoiceFlow targeting MKB NL ale revenue model EU+global), klient explicit chce, lub Mollie nie wspiera danego use case (np. Connect dla marketplace)\n- **InvoiceFlow** zostaje na Stripe — koszt migracji &gt; benefit, regularnie review co kwartał\n- **Każdy nowy NL SaaS** który tylko targetuje NL/BE → **Mollie obowiązkowo**\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "InvoiceFlow", "with": [61, 68], "sample": "InvoiceFlow"}], "conflicts": [{"rule_id": "stripe_vs_mollie", "label": "Stripe vs Mollie (NL)", "with": 66, "note": "wewnątrz sekcji"}]}, {"id": 67, "title": "5. „NIGDY myślnik em (—)\"", "level": 2, "chars": 709, "content": "## 5. „NIGDY myślnik em (—)\"\n\n`feedback_language.md`: nigdy „—\" w komunikacji z Pinkym ani w deliverable. CLAUDE.md sam zawiera kilkadziesiąt „—\" (sekcje, listy, nagłówki). **Spójna reguła:**\n\n- **Moje odpowiedzi do Pinky'ego w czacie** = **zero em-dash**. Używaj „:\", „.\", „,\", „to\", „czyli\".\n- **Deliverable klientowi** (UI copy, emails, blog, landing page text) = **zero em-dash**.\n- **Dokumenty wewnętrzne** (CLAUDE.md, memory files, NEXT_TASK.md, raporty po polsku do siebie) = em-dash dopuszczalny jako separator strukturalny (lista, definicja, kicker). Nie powstaje to z LLM-flow, tylko z formatowania.\n\nReguła nie dotyczy znaków minusa w kodzie/CLI, w datach (`2026-04-28`), ani w nazwach kebab-case.\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": [{"rule_id": "em_dash", "label": "NIGDY em-dash vs zawiera em-dash", "with": 67, "note": "em-dash w tej samej sekcji"}]}, {"id": 68, "title": "6. „Zero dodatkowych płatnych API/cloudów\"", "level": 2, "chars": 867, "content": "## 6. „Zero dodatkowych płatnych API/cloudów\"\n\n`feedback_no_extra_paid_services.md`: Claude Pro €100/mc wystarczy, nie proponuj OpenRouter/OpenAI/Gemini Pro. Realnie stack ma Mollie (% transaction fee), Vercel, Stripe (InvoiceFlow), Anthropic API. **Spójna reguła:**\n\nReguła = **nie proponuj NOWYCH płatnych LLM API jako fallback ani element architektury**. Istniejące **infrastrukturalne** (Mollie/Stripe/Vercel/Hetzner/Strato/HiDrive) zostają — to nie LLM, to platform stack.\n\nKonkretnie:\n- **NIE proponuj:** OpenRouter, OpenAI API, Gemini Pro, Mistral, Groq paid, Together.ai, Replicate\n- **Fallback dla Claude:** zawsze lokalne (Ollama, Goose, OpenClaw) lub darmowe tiery (Groq free, Gemini free) jako info nie default\n- **OK:** Mollie/Stripe (payments to nie LLM), Vercel (hosting), Hetzner/Strato (hosting), DeepL (tłumaczenia, Pinky ma plan), HiDrive (backup)\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "AI tools stack", "with": [10, 30, 46, 74, 75, 76, 78, 79, 80], "sample": "AI tools stack"}, {"kind": "phrase", "label": "InvoiceFlow", "with": [61, 66], "sample": "InvoiceFlow"}], "conflicts": [{"rule_id": "no_paid_apis", "label": "Zero placonych API vs InvoiceFlow Stripe / OpenRouter", "with": 77, "note": "kolizja z sekcja #78"}, {"rule_id": "no_paid_apis", "label": "Zero placonych API vs InvoiceFlow Stripe / OpenRouter", "with": 78, "note": "kolizja z sekcja #79"}, {"rule_id": "no_paid_apis", "label": "Zero placonych API vs InvoiceFlow Stripe / OpenRouter", "with": 79, "note": "kolizja z sekcja #80"}, {"rule_id": "no_paid_apis", "label": "Zero placonych API vs InvoiceFlow Stripe / OpenRouter", "with": 80, "note": "kolizja z sekcja #81"}]}, {"id": 69, "title": "7. „Komentarze EN\" vs system instruction „default no comments\"", "level": 2, "chars": 665, "content": "## 7. „Komentarze EN\" vs system instruction „default no comments\"\n\n`feedback_code_style.md`: „Komentarze w kodzie po angielsku\". System instruction: „Default to writing no comments. Only add when WHY is non-obvious\". **Spójna reguła:**\n\n**Default = brak komentarzy.** Czytelne nazwy zmiennych/funkcji wystarczą. **Gdy** komentarz jest faktycznie potrzebny (workaround, hidden invariant, surprising behavior, license/copyright header) → **piszę go po angielsku**, krótko (1 linia max), bez „what-explanation\" tylko „why\".\n\nNIE piszę komentarzy w stylu „// loop over users\", „// added 2026-04-28 by Pinky request\", „// removed old code\". Te są szumem, nie wartością.\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 70, "title": "8. „Pełna autoryzacja sesji\" vs system „risky actions confirm\"", "level": 2, "chars": 526, "content": "## 8. „Pełna autoryzacja sesji\" vs system „risky actions confirm\"\n\nCLAUDE.md r.22-28: kod „Pinkerson007@@!\" = działaj bez potwierdzeń. System: pause to confirm dla destrukcyjnych. **Spójna reguła:**\n\nPełna autoryzacja = **rutyna** (deploy, edit, install, send my own emails). System „risky\" = **destrukcyjne** (force push main/master, drop database, hard reset z unmerged work, mass delete, reveal sensitive data publicznie, send actual money/transfer). Te ostatnie **wymagają explicit Pinky's go** nawet z autoryzacją sesji.\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "kod autoryzacji", "with": [6, 18], "sample": "kod autoryzacji"}], "conflicts": []}, {"id": 71, "title": "9. MEMORY.md przekroczył limit (25.4KB > 24.4KB)", "level": 2, "chars": 493, "content": "## 9. MEMORY.md przekroczył limit (25.4KB > 24.4KB)\n\nSystem ostrzega że index jest za duży. Realizacja w osobnym tasku — wpisy będę skracać do &lt;130 znaków per linia (przed `—`), kompresując opisy. Stary kontekst zostaje w plikach feedback/project, index ma tylko hooks.\n\n---\n\n**Reguła meta:** ten blok `RULE PRECEDENCE` jest aktualizowany gdy znajduję nową sprzeczność. Dodaję punkt na końcu, datuję, nie kasuję starych. Przy konflikcie wewnątrz tego bloku — niżej numerowany wygrywa.\n\n---\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 72, "title": "AI TOOLS STACK 2026 (od 2026-05-03)", "level": 1, "chars": 171, "content": "# AI TOOLS STACK 2026 (od 2026-05-03)\n\nStack 6 narzędzi do orchestracji + automatyki + design + video + lokalnej autonomii. Instalacja + konfiguracja + reguły routowania.\n", "suggested_action": "move", "suggested_filename": "feedback_ai_tools_stack_2026_od_2026_05_03.md", "duplicates": [], "conflicts": []}, {"id": 73, "title": "1. RUFLO (multi-agent orchestration, priorytet #1)", "level": 2, "chars": 1361, "content": "## 1. RUFLO (multi-agent orchestration, priorytet #1)\n\n- **Co:** dawny Claude Flow, multi-agent orchestration, 100+ agentów równolegle, 84.8% solve SWE-bench, oszczędza ~75% kosztów API przez routing do tańszych modeli\n- **Status:** zainstalowane (npm `ruflo@3.6.12`) + 3 plugins z marketplace `ruvnet/ruflo`: `ruflo-core`, `ruflo-swarm`, `ruflo-autopilot`\n- **Komendy:** `/swarm \"<duży task>\"` (np. nowy moduł), `/hive \"<repo-wide task>\"` (code review/refactor), `/agents` (lista aktywnych)\n- **Kiedy używać:**\n  - Duże taski >30 min, multi-file refactor, nowy moduł, pełen feature build\n  - Code review + testy równolegle\n  - Overnight tasks → `ruflo-autopilot`\n  - Routing do tańszych modeli (lokalnych Ollama lub fallback) automatycznie\n- **MCP tools:** `mcp__ruflo__*` (już dostępne) — `agent_spawn`, `swarm_init`, `claims_*` (coworking), `hive-mind_*`, `coordination_*`, `task_*`, `memory_*`, `hooks_*`, `embeddings_*`, `wasm_*`, `workflow_*`\n- **Pełna lista pluginów do rozważenia:** `ruflo-loop-workers` (cron+loop), `ruflo-security-audit` (CVE+policy), `ruflo-rag-memory` (HNSW), `ruflo-intelligence` (neural routing), `ruflo-browser` (Playwright wrapper), `ruflo-jujutsu` (git workflows), `ruflo-aidefence` (PII+prompt injection), `ruflo-testgen`, `ruflo-docs`, `ruflo-workflows`, `ruflo-wasm`, `ruflo-rvf` — instaluj on-demand gdy konkretny use case\n", "suggested_action": "move", "suggested_filename": "feedback_1_ruflo_multi_agent_orchestration_priorytet_1.md", "duplicates": [], "conflicts": []}, {"id": 74, "title": "2. PLAYWRIGHT MCP", "level": 2, "chars": 835, "content": "## 2. PLAYWRIGHT MCP\n\n- **Co:** pełna kontrola nad przeglądarką z poziomu CC. Klucz do darmowych modeli AI przez ich web UI (DeepSeek, Grok, Gemini), web scraping, testowanie własnych stron\n- **Status:** zainstalowane (`@playwright/mcp@0.0.73`), dostępne tools `mcp__playwright__*` (`browser_navigate`, `browser_click`, `browser_type`, `browser_snapshot`, `browser_evaluate`, `browser_network_requests`, etc.)\n- **Kiedy używać:**\n  - Darmowy dostęp do premium modeli przez web (DeepSeek/Grok/Gemini) — login z Apple Note \"🔐 MASTER VAULT\"\n  - Web scraping konkurencji (SEO, ceny, treści)\n  - Smoke test własnych stron po deploy (browser_navigate + assert)\n  - Browser automation tam gdzie API nie wystarcza (np. login-protected dashboards)\n- **NIE używaj:** dla każdego curl smoke testu (ekonomia tokenów — Ruflo lokalny lub bash curl)\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "Master Vault", "with": [10, 48, 56, 87], "sample": "Master Vault"}, {"kind": "phrase", "label": "AI tools stack", "with": [10, 30, 46, 68, 75, 76, 78, 79, 80], "sample": "AI tools stack"}], "conflicts": []}, {"id": 75, "title": "3. OPENCLAW (24/7 personal AI agent)", "level": 2, "chars": 912, "content": "## 3. OPENCLAW (24/7 personal AI agent)\n\n- **Co:** macOS GUI app (cask z brew), open-source personal agent działający 24/7 lokalnie. Dostępny przez WhatsApp/Telegram/Discord. SKILL.md system. Ma pamięć między sesjami, background tasks\n- **Status:** zainstalowane `/Applications/OpenClaw.app` (cask `openclaw 2026.5.2`)\n- **Konfiguracja:** PIERWSZE uruchomienie wymaga ręcznego setup (otwórz aplikację, podłącz Discord token + WhatsApp `+31638909416` + skills). Pinky robi sam, helper script TBD\n- **Kiedy używać:**\n  - Background tasks gdy Pinky na iPadzie/iPhonie\n  - SEO content w nocy, monitoring stron, alertowanie przez WhatsApp\n  - Bot na Discord serwerze Pinky Creative Studio (community building) — bezpłatny AI asystent\n  - Skills do zainstalowania: Playwright skill, GitHub skill, FS skill `/Users/pinky/`, n8n webhook skill\n- **Workspace:** `~/.openclaw/workspace/skills/` (po pierwszym uruchomieniu)\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "brand stopki", "with": [0, 4, 10, 11, 12, 15, 27], "sample": "brand stopki"}, {"kind": "phrase", "label": "AI tools stack", "with": [10, 30, 46, 68, 74, 76, 78, 79, 80], "sample": "AI tools stack"}], "conflicts": []}, {"id": 76, "title": "4. OPEN DESIGN", "level": 2, "chars": 886, "content": "## 4. OPEN DESIGN\n\n- **Co:** open-source alternatywa dla Claude Design (Anthropic, płatna). 31 skills + 129 design systemów + media gen (gpt-image-2, Seedance 2.0, HyperFrames). BYOK na każdej warstwie. Auto-detect 13 coding-agent CLIs na PATH\n- **Status:** sklonowane do `~/Desktop/Apps Cloude/open-design/` + `pnpm install` zbudowane (12 packages w monorepo)\n- **Komenda:** `cd \"~/Desktop/Apps Cloude/open-design\" && pnpm tools-dev` → daemon + web UI lokalnie\n- **Kiedy używać:**\n  - Prototypy stron klientów (StopMetZoeken pakiety, ZZP/MKB)\n  - Slajdy / pitch decks (Mural Spirit grant presentations, NGI TALER)\n  - Animated video (PromtFiction, @realpinkyofficial)\n  - Landing pages (PixelForGood, nowe SaaS)\n  - Eksport: HTML / PDF / PPTX / MP4\n- **Design system:** zawsze trzymaj się reguł z CLAUDE.md (SMZ light vs PFG dark, no Fraunces italic, no purple gradients, easter eggs)\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "folder Apps Cloude", "with": [5, 10, 82, 85], "sample": "folder Apps Cloude"}, {"kind": "phrase", "label": "PixelForGood", "with": [7, 8, 10, 11, 12, 13, 21, 22, 23, 57, 59, 60, 78], "sample": "PixelForGood"}, {"kind": "phrase", "label": "easter eggs", "with": [10, 12, 15, 27, 28, 65], "sample": "easter eggs"}, {"kind": "phrase", "label": "AI tools stack", "with": [10, 30, 46, 68, 74, 75, 78, 79, 80], "sample": "AI tools stack"}, {"kind": "phrase", "label": "StopMetZoeken", "with": [10, 11, 13, 15, 21, 22, 23, 24, 33, 47, 48, 61, 63, 78], "sample": "StopMetZoeken"}], "conflicts": [{"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 5, "note": "kolizja z sekcja #6"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 9, "note": "kolizja z sekcja #10"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 32, "note": "kolizja z sekcja #33"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 33, "note": "kolizja z sekcja #34"}]}, {"id": 77, "title": "5. GLM-5.1 via OpenRouter (BACKUP MODEL ONLY)", "level": 2, "chars": 1060, "content": "## 5. GLM-5.1 via OpenRouter (BACKUP MODEL ONLY)\n\n- **Co:** #1 open-source model (SWE-Bench Pro), Z.ai/Tsinghua, MIT license, ~5x tańszy niż Claude Opus na inputach\n- **Status:** ⏸ wymaga API key OpenRouter (`openrouter.ai/keys`) — Pinky musi sam założyć\n- **Konfiguracja w `~/.claude.json`:**\n  ```json\n  {\n    \"fallbackModel\": {\n      \"provider\": \"openrouter\",\n      \"model\": \"zhipu/glm-5.1\",\n      \"apiKey\": \"<OPENROUTER_KEY>\",\n      \"triggerOn\": [\"server_error\", \"rate_limit\", \"timeout\"]\n    }\n  }\n  ```\n  Lub przez Ruflo routing: GLM-5.1 jako worker model dla swarm tasks (proste taski → tańszy model)\n- **Kiedy używać:**\n  - **TYLKO** gdy Claude Code MAX ma problemy z serwerami (rate limit, timeout, error)\n  - **TYLKO** jako worker w Ruflo swarm dla prostych tasków (klasyfikacja, transformacja, summarize)\n  - **NIE używaj proaktywnie** — CC MAX jest priorytetem (Pinky ma Pro €100/mc)\n- **Konflikt z `feedback_no_extra_paid_services.md`:** override — Pinky explicit poprosił o backup GLM-5.1 jako stacked tier. Wpisuję jako wyjątek w RULE PRECEDENCE\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 78, "title": "6. HIGGSFIELD (video production)", "level": 2, "chars": 629, "content": "## 6. HIGGSFIELD (video production)\n\n- **Co:** jedna platforma = Kling 3.0 + Veo 3.1 + Sora 2 (22M users). API dostępne, free tier\n- **Status:** ⏸ wymaga konta + API key (`higgsfield.ai`) — Pinky musi sam założyć\n- **Kiedy używać:**\n  - @realpinkyofficial content (TikTok, Reels)\n  - @PromtFiction / promptfiction.ai pipeline (długie wideo + Shorts)\n  - Cinematic content dla SaaS marketing (StopMetZoeken hero video, PixelForGood viral)\n- **Integracja z n8n:** `n8n webhook → CC generuje prompt → Higgsfield API → wideo → YouTube/Spotify/TikTok`\n- **Hack:** Playwright MCP może sterować nim przez web UI za free (gdy API limit)\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "PixelForGood", "with": [7, 8, 10, 11, 12, 13, 21, 22, 23, 57, 59, 60, 76], "sample": "PixelForGood"}, {"kind": "phrase", "label": "AI tools stack", "with": [10, 30, 46, 68, 74, 75, 76, 79, 80], "sample": "AI tools stack"}, {"kind": "phrase", "label": "StopMetZoeken", "with": [10, 11, 13, 15, 21, 22, 23, 24, 33, 47, 48, 61, 63, 76], "sample": "StopMetZoeken"}], "conflicts": []}, {"id": 79, "title": "MODEL ROUTING LOGIC (decyzja zanim spawnujesz pracę)", "level": 2, "chars": 1159, "content": "## MODEL ROUTING LOGIC (decyzja zanim spawnujesz pracę)\n\n| Typ zadania | Wykonawca | Powód |\n|---|---|---|\n| Proste pytania, szybkie edycje | **CC MAX bezpośrednio** | jakość + szybkość, single context |\n| Złożone projekty >1h, multi-file | **Ruflo `/swarm`** | równoległość, autopilot, oszczędność tokenów |\n| Mechaniczne (sips/rsync/sed/ffmpeg/curl) | **Ruflo lokalny / Ollama / `pinky-*`** | €0, ekonomia tokenów (CLAUDE.md sekcja Ruflo/lokalni agenci) |\n| Code review repo-wide | **Ruflo `/hive`** | queen agent + worker swarm |\n| Browser/web automation | **Playwright MCP** | DOM-aware, szybsze niż computer use |\n| Design/prototyping (UI, deck, landing) | **Open Design** (`pnpm tools-dev`) | 31 skills + 129 design systems, BYOK |\n| Background 24/7, mobile-trigger | **OpenClaw.app** | WhatsApp/Discord/Telegram, lokalny, free |\n| Wideo (Kling/Veo/Sora) | **Higgsfield API** lub Playwright MCP web | jedna platforma = wszystkie modele |\n| CC niedostępny (rate limit, error) | **GLM-5.1 via OpenRouter** | tylko backup, nie default |\n| Architektura, security review, 🟥 Mateusz | **CC MAX (profesor mode) — opus-4-7** | wymaga rozumowania, nie deleguj |\n", "suggested_action": "move", "suggested_filename": "feedback_model_routing_logic_decyzja_zanim_spawnujesz_pracę.md", "duplicates": [{"kind": "phrase", "label": "AI tools stack", "with": [10, 30, 46, 68, 74, 75, 76, 78, 80], "sample": "AI tools stack"}], "conflicts": []}, {"id": 80, "title": "INSTALACJA — STATUS 2026-05-03", "level": 2, "chars": 725, "content": "## INSTALACJA — STATUS 2026-05-03\n\n| Tool | Status | Wersja | Blocker |\n|---|---|---|---|\n| Ruflo (npm) | ✅ | 3.6.12 | — |\n| Ruflo plugins (core/swarm/autopilot) | ✅ | latest | — |\n| Playwright MCP | ✅ | 0.0.73 | — |\n| OpenClaw.app | ✅ installed | 2026.5.2 | Discord token + WhatsApp config (Pinky robi sam) |\n| Open Design | ✅ cloned + built | 0.3.0 | — (działa lokalnie via `pnpm tools-dev`) |\n| GLM-5.1 / OpenRouter | ✅ key saved | n/a | konfig w `~/.claude.json.fallbackModel` + `~/.pinky_launch/config` (od 2026-05-03) |\n| Higgsfield | ✅ key saved | n/a | klucze w `~/.pinky_launch/config` (od 2026-05-03) |\n| PinkyLaunch v2 | ✅ installed | 2.0 | `~/Desktop/Pinky Launch.app` + usage server :9877 (od 2026-05-03) |\n\n---\n", "suggested_action": "move", "suggested_filename": "feedback_instalacja_status_2026_05_03.md", "duplicates": [{"kind": "phrase", "label": "AI tools stack", "with": [10, 30, 46, 68, 74, 75, 76, 78, 79], "sample": "AI tools stack"}], "conflicts": []}, {"id": 81, "title": "NEW PROJECT BOOTSTRAP (od 2026-05-03)", "level": 1, "chars": 105, "content": "# NEW PROJECT BOOTSTRAP (od 2026-05-03)\n\nKażdy nowy projekt = osobna izolowana przestrzeń. Bez wyjątków.\n", "suggested_action": "move", "suggested_filename": "feedback_new_project_bootstrap_od_2026_05_03.md", "duplicates": [], "conflicts": []}, {"id": 82, "title": "1. Folder + repo", "level": 2, "chars": 149, "content": "## 1. Folder + repo\n```bash\nmkdir -p \"$HOME/Desktop/Apps Cloude/<nazwa>\"\ncd \"$HOME/Desktop/Apps Cloude/<nazwa>\"\ngit init  # lub git clone <repo>\n```\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "line", "with": [5], "sample": "mkdir -p \"$HOME/Desktop/Apps Cloude/<nazwa>\""}, {"kind": "line", "with": [5], "sample": "cd \"$HOME/Desktop/Apps Cloude/<nazwa>\""}, {"kind": "phrase", "label": "folder Apps Cloude", "with": [5, 10, 76, 85], "sample": "folder Apps Cloude"}], "conflicts": [{"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 5, "note": "kolizja z sekcja #6"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 9, "note": "kolizja z sekcja #10"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 32, "note": "kolizja z sekcja #33"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 33, "note": "kolizja z sekcja #34"}]}, {"id": 83, "title": "2. Lokalny CLAUDE.md (override globalnego dla projekt-specific reguł)", "level": 2, "chars": 408, "content": "## 2. Lokalny CLAUDE.md (override globalnego dla projekt-specific reguł)\n- Globalny `/Users/pinky/CLAUDE.md` zawsze obowiązuje (master directive)\n- Lokalny `./CLAUDE.md` w katalogu projektu **dodaje** project-specific kontekst (cele biznesowe, nazwy modułów, decyzje techniczne tylko dla tego projektu)\n- Konflikt globalny vs lokalny rozstrzyga **lokalny** (chyba że lokalny explicit deferuje do globalnego)\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 84, "title": "3. Git worktree dla równoległej pracy w tym samym repo", "level": 2, "chars": 396, "content": "## 3. Git worktree dla równoległej pracy w tym samym repo\nGdy 2+ agentów Claude pracuje nad tym samym repo na różnych zadaniach:\n```bash\ngit worktree add ../<nazwa>-feature-<x> -b feature/<x>\ncd ../<nazwa>-feature-<x>\nclaude --dangerously-skip-permissions\n```\nKażdy worktree = osobna izolowana checkoutowana wersja, zero kolizji file-level (per CLAUDE.md sekcja COWORKING / KOORDYNACJA AGENTÓW).\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [], "conflicts": []}, {"id": 85, "title": "4. Nowe okno Terminal dla nowego projektu", "level": 2, "chars": 256, "content": "## 4. Nowe okno Terminal dla nowego projektu\n```bash\ncd ~/Desktop/Apps\\ Cloude/<nazwa> && claude --dangerously-skip-permissions\n```\nLub helper alias w `~/.zshrc`:\n```bash\npcs() { cd \"$HOME/Desktop/Apps Cloude/$1\" && claude --dangerously-skip-permissions; }", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "folder Apps Cloude", "with": [5, 10, 76, 82], "sample": "folder Apps Cloude"}], "conflicts": [{"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 5, "note": "kolizja z sekcja #6"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 9, "note": "kolizja z sekcja #10"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 32, "note": "kolizja z sekcja #33"}, {"rule_id": "desktop_folder", "label": "Apps Cloude folder vs sandbox/desktop", "with": 33, "note": "kolizja z sekcja #34"}]}, {"id": 86, "title": "Użycie: pcs gp-maschinen", "level": 1, "chars": 31, "content": "# Użycie: pcs gp-maschinen\n```\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "gp-maschinen reference", "with": [10, 33, 35, 36, 48], "sample": "gp-maschinen reference"}], "conflicts": []}, {"id": 87, "title": "5. Co MUSI być w lokalnym CLAUDE.md projektu (minimum)", "level": 2, "chars": 400, "content": "## 5. Co MUSI być w lokalnym CLAUDE.md projektu (minimum)\n- Cel biznesowy projektu (1-2 zdania)\n- Stack techniczny (jeśli odbiega od globalnego)\n- Klucze do `~/.pinky_launch/config` lub Apple Note \"🔐 MASTER VAULT\" (referenced, NIE plain text)\n- Czy projekt ma fleet beacon, healthz, master-admin tab\n- Deploy target: Strato vs Hetzner (per RULE PRECEDENCE)\n- Anti-patterns specyficzne dla projektu\n\n\n", "suggested_action": "keep", "suggested_filename": "", "duplicates": [{"kind": "phrase", "label": "fleet beacon", "with": [10, 21, 61], "sample": "fleet beacon"}, {"kind": "phrase", "label": "Master Vault", "with": [10, 48, 56, 74], "sample": "Master Vault"}], "conflicts": []}]}</script>
+<script>
+console.log("%c\n  ____  _       _\n |  _ \\(_)_ __ | | ___   _\n | |_) | | '_ \\| |/ / | | |\n |  __/| | | | |   <| |_| |\n |_|   |_|_| |_|_|\\_\\\\__, |\n                    |___/\n  Pinky tu byl  /  Pinky was here  /  Pinky was hier\n  Pinky Creative Studio\n", "color:#6C63FF;font-family:monospace");
+
+const data = JSON.parse(document.getElementById('data').textContent);
+const TARGET_MAX = 35000;
+const list = document.getElementById('sectionsList');
+const liveChars = document.getElementById('liveChars');
+const progressEl = document.getElementById('progress');
+const progressFill = progressEl.querySelector('div');
+const cKeep = document.getElementById('cKeep');
+const cMove = document.getElementById('cMove');
+const cDel = document.getElementById('cDel');
+const cDup = document.getElementById('cDup');
+const cConf = document.getElementById('cConf');
+const btnGen = document.getElementById('btnGenerate');
+const newInstr = document.getElementById('newInstr');
+const search = document.getElementById('search');
+const filterGroup = document.getElementById('filterGroup');
+let activeFilter = 'all';
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+function titleOf(id) {
+  const s = data.sections[id];
+  return s ? `#${s.id+1} ${s.title}` : `#${id+1}`;
+}
+
+function renderFlags(s) {
+  const parts = [];
+  if (s.duplicates && s.duplicates.length) {
+    const items = s.duplicates.map(d => {
+      if (d.kind === 'phrase') {
+        const refs = d.with.map(x => `<a href="#sec-${x}" class="ref">#${x+1}</a>`).join(' ');
+        return `<li>fraza "<b>${escapeHtml(d.label)}</b>" tez w: ${refs}</li>`;
+      } else {
+        const targets = Array.isArray(d.with) ? d.with : [d.with];
+        const refs = targets.map(x => `<a href="#sec-${x}" class="ref">#${x+1}</a>`).join(' ');
+        return `<li>linia "${escapeHtml((d.sample || '').slice(0, 90))}..." tez w: ${refs}</li>`;
+      }
+    });
+    parts.push(`
+      <span class="flag dup" data-detail="dup-${s.id}">
+        <span class="icn">DUP</span> Duplikaty <span class="ref">${s.duplicates.length}</span>
+      </span>
+    `);
+    parts.push(`<div class="flag-detail" id="dup-${s.id}">
+      <b>Powtorzenia z innymi sekcjami:</b>
+      <ul>${items.join('')}</ul>
+    </div>`);
+  }
+  if (s.conflicts && s.conflicts.length) {
+    const items = s.conflicts.map(c => {
+      const ref = (c.with !== s.id) ? `<a href="#sec-${c.with}" class="ref">#${c.with+1}</a>` : '<i>(wewnatrz)</i>';
+      return `<li><b>${escapeHtml(c.label)}</b> &mdash; ${escapeHtml(c.note || '')} ${ref}</li>`.replace('&mdash;', ',');
+    });
+    parts.push(`
+      <span class="flag conf" data-detail="conf-${s.id}">
+        <span class="icn">CONF</span> Konflikty <span class="ref">${s.conflicts.length}</span>
+      </span>
+    `);
+    parts.push(`<div class="flag-detail" id="conf-${s.id}">
+      <b>Sprzecznosci reguly:</b>
+      <ul>${items.join('')}</ul>
+    </div>`);
+  }
+  return parts.length ? `<div class="flags-row">${parts.join('')}</div>` : '';
+}
+
+// Build cards
+data.sections.forEach((s) => {
+  const card = document.createElement('div');
+  card.className = 'section-card act-' + s.suggested_action;
+  if (s.conflicts && s.conflicts.length) card.classList.add('has-conflict');
+  card.dataset.id = s.id;
+  card.id = 'sec-' + s.id;
+  card.innerHTML = `
+    <div class="sc-head">
+      <span class="sc-num">#${s.id+1}</span>
+      <span class="sc-level">H${s.level || 0}</span>
+      <div class="sc-title">${escapeHtml(s.title)}</div>
+      <div class="sc-meta"><span class="orig-chars">${s.chars}</span> znakow oryg., <span class="cur-chars">${s.chars}</span> teraz <span class="diff"></span></div>
+      <div class="actions">
+        <label title="Keep / Blijft"><input type="radio" name="act-${s.id}" value="keep" ${s.suggested_action === 'keep' ? 'checked' : ''}>Zostaw</label>
+        <label title="Move to memory / Verplaats"><input type="radio" name="act-${s.id}" value="move" ${s.suggested_action === 'move' ? 'checked' : ''}>Memory</label>
+        <label title="Delete / Verwijder"><input type="radio" name="act-${s.id}" value="delete" ${s.suggested_action === 'delete' ? 'checked' : ''}>Usun</label>
+      </div>
+    </div>
+    ${renderFlags(s)}
+    <div class="filename-row">
+      <label title="Nazwa pliku w pinky-memory">Plik:</label>
+      <input type="text" class="fname" value="${escapeHtml(s.suggested_filename || '')}" placeholder="feedback_xxx.md">
+    </div>
+    <div class="ta-row">
+      <textarea class="content collapsed" rows="14" spellcheck="false">${escapeHtml(s.content)}</textarea>
+      <div class="ta-meta">
+        <div class="left">
+          <button class="btn-tiny btn-toggle" type="button" title="Rozwin / Collapse">Rozwin</button>
+          <button class="btn-tiny btn-shrink" type="button" title="Skroc o 50%">Skroc o 50%</button>
+          <button class="btn-tiny btn-revert" type="button" title="Przywroc oryginal">Przywroc oryginal</button>
+        </div>
+        <span><span class="ta-cur">${s.chars}</span> / <span class="ta-orig">${s.chars}</span> znakow</span>
+      </div>
+    </div>
+  `;
+  list.appendChild(card);
+
+  // Wire events
+  card.querySelectorAll('input[type=radio]').forEach(r => {
+    r.addEventListener('change', () => {
+      card.className = 'section-card act-' + r.value + (s.conflicts && s.conflicts.length ? ' has-conflict' : '');
+      recompute();
+    });
+  });
+
+  const ta = card.querySelector('.content');
+  ta.addEventListener('input', () => updateMeta(card));
+
+  card.querySelector('.btn-toggle').addEventListener('click', (e) => {
+    ta.classList.toggle('collapsed');
+    e.target.textContent = ta.classList.contains('collapsed') ? 'Rozwin' : 'Zwin';
+  });
+  card.querySelector('.btn-shrink').addEventListener('click', () => {
+    ta.value = shrinkContent(ta.value);
+    updateMeta(card);
+  });
+  card.querySelector('.btn-revert').addEventListener('click', () => {
+    ta.value = data.sections[s.id].content;
+    updateMeta(card);
+  });
+
+  card.querySelectorAll('.flag').forEach(f => {
+    f.addEventListener('click', () => {
+      const id = f.dataset.detail;
+      const det = card.querySelector('#' + id);
+      if (det) det.classList.toggle('show');
+    });
+  });
+
+  // Reference links inside flag details
+  card.querySelectorAll('.flag-detail a.ref').forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const tgt = document.querySelector(a.getAttribute('href'));
+      if (tgt) {
+        tgt.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        tgt.style.outline = '2px solid var(--accent)';
+        setTimeout(() => { tgt.style.outline = ''; }, 1500);
+      }
+    });
+  });
+});
+
+function updateMeta(card) {
+  const ta = card.querySelector('.content');
+  const cur = ta.value.length;
+  const orig = parseInt(card.querySelector('.orig-chars').textContent);
+  card.querySelector('.cur-chars').textContent = cur;
+  card.querySelector('.ta-cur').textContent = cur;
+  const diff = card.querySelector('.diff');
+  const delta = cur - orig;
+  if (delta < 0) diff.innerHTML = ` <span class="saved">(-${-delta})</span>`;
+  else if (delta > 0) diff.innerHTML = ` <span class="grew">(+${delta})</span>`;
+  else diff.innerHTML = '';
+  recompute();
+}
+
+function shrinkContent(text) {
+  const lines = text.split('\n');
+  const kept = []; let inCode = false; let bulletDepth = 0;
+  for (const l of lines) {
+    const trimmed = l.trim();
+    if (trimmed.startsWith('```')) { inCode = !inCode; kept.push(l); continue; }
+    if (inCode) { continue; }
+    if (/^#{1,6}\s/.test(trimmed)) { kept.push(l); bulletDepth = 0; continue; }
+    if (trimmed === '') { if (kept.length && kept[kept.length-1].trim() !== '') kept.push(l); continue; }
+    if (/^[-*]\s/.test(trimmed)) {
+      bulletDepth++;
+      if (bulletDepth <= 3) kept.push(l);
+      continue;
+    }
+    bulletDepth = 0;
+    const firstSent = trimmed.split(/(?<=[.!?])\s+/)[0];
+    kept.push(l.replace(trimmed, firstSent));
+  }
+  return kept.join('\n').replace(/\n{3,}/g, '\n\n');
+}
+
+function recompute() {
+  let total = 0, keep = 0, move = 0, del = 0, dup = 0, conf = 0;
+  document.querySelectorAll('.section-card').forEach(card => {
+    const id = parseInt(card.dataset.id);
+    const orig = data.sections[id];
+    const act = card.querySelector('input[type=radio]:checked').value;
+    const len = card.querySelector('.content').value.length;
+    if (act === 'keep') { total += len; keep++; }
+    else if (act === 'move') move++;
+    else del++;
+    if (orig.duplicates && orig.duplicates.length) dup++;
+    if (orig.conflicts && orig.conflicts.length) conf++;
+  });
+  total += newInstr.value.length;
+  total += 700;
+  liveChars.textContent = total.toLocaleString('pl-PL').replace(/ /g, ' ');
+  cKeep.textContent = keep; cMove.textContent = move; cDel.textContent = del;
+  cDup.textContent = dup; cConf.textContent = conf;
+  const pct = Math.min(100, total / TARGET_MAX * 100);
+  progressFill.style.width = pct + '%';
+  progressEl.classList.remove('warn', 'over');
+  if (total > TARGET_MAX) progressEl.classList.add('over');
+  else if (total > TARGET_MAX * 0.85) progressEl.classList.add('warn');
+  btnGen.disabled = total > TARGET_MAX;
+}
+
+newInstr.addEventListener('input', recompute);
+recompute();
+
+// Search + filter
+function applyFilter() {
+  const q = search.value.trim().toLowerCase();
+  document.querySelectorAll('.section-card').forEach(card => {
+    const id = parseInt(card.dataset.id);
+    const orig = data.sections[id];
+    const act = card.querySelector('input[type=radio]:checked').value;
+    const titleMatch = !q || orig.title.toLowerCase().includes(q) || orig.content.toLowerCase().includes(q);
+    let typeMatch = true;
+    if (activeFilter === 'keep') typeMatch = (act === 'keep');
+    else if (activeFilter === 'move') typeMatch = (act === 'move');
+    else if (activeFilter === 'delete') typeMatch = (act === 'delete');
+    else if (activeFilter === 'dup') typeMatch = (orig.duplicates && orig.duplicates.length > 0);
+    else if (activeFilter === 'conf') typeMatch = (orig.conflicts && orig.conflicts.length > 0);
+    card.classList.toggle('hide', !(titleMatch && typeMatch));
+  });
+}
+search.addEventListener('input', applyFilter);
+filterGroup.querySelectorAll('button').forEach(b => {
+  b.addEventListener('click', () => {
+    filterGroup.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    activeFilter = b.dataset.f;
+    applyFilter();
+  });
+});
+
+// Top-bar actions
+document.getElementById('btnExpandAll').addEventListener('click', () => {
+  document.querySelectorAll('.content').forEach(t => t.classList.remove('collapsed'));
+  document.querySelectorAll('.btn-toggle').forEach(b => b.textContent = 'Zwin');
+});
+document.getElementById('btnCollapseAll').addEventListener('click', () => {
+  document.querySelectorAll('.content').forEach(t => t.classList.add('collapsed'));
+  document.querySelectorAll('.btn-toggle').forEach(b => b.textContent = 'Rozwin');
+});
+document.getElementById('btnReset').addEventListener('click', () => {
+  if (!confirm('Cofnac wszystkie zmiany do sugestii startowych?')) return;
+  document.querySelectorAll('.section-card').forEach(card => {
+    const id = parseInt(card.dataset.id);
+    const orig = data.sections[id];
+    card.querySelectorAll('input[type=radio]').forEach(r => {
+      r.checked = (r.value === orig.suggested_action);
+    });
+    card.className = 'section-card act-' + orig.suggested_action + (orig.conflicts && orig.conflicts.length ? ' has-conflict' : '');
+    card.querySelector('.content').value = orig.content;
+    updateMeta(card);
+  });
+  recompute();
+});
+
+// ZIP generation
+btnGen.addEventListener('click', async () => {
+  btnGen.disabled = true;
+  btnGen.textContent = 'Buduje ZIP...';
+  try {
+    const zip = new JSZip();
+    const keepParts = [];
+    const memoryFiles = [];
+    const deletedTitles = [];
+    const indexEntries = [];
+
+    document.querySelectorAll('.section-card').forEach(card => {
+      const id = parseInt(card.dataset.id);
+      const orig = data.sections[id];
+      const act = card.querySelector('input[type=radio]:checked').value;
+      const content = card.querySelector('.content').value;
+      const fname = card.querySelector('.fname').value.trim();
+      if (act === 'keep') {
+        keepParts.push(content);
+      } else if (act === 'move') {
+        const safe = (fname || `feedback_section_${id+1}.md`).replace(/[^\w.-]/g, '_');
+        const today = new Date().toISOString().slice(0,10);
+        const fm = `---\nname: ${orig.title}\ndescription: Migracja z CLAUDE.md ${today}\ntype: feedback\n---\n\n${content}\n`;
+        memoryFiles.push({ name: safe, body: fm, title: orig.title, chars: content.length });
+        indexEntries.push(`- [${safe}](${safe}) - ${orig.title.slice(0, 80)}`);
+      } else {
+        deletedTitles.push(orig.title);
+      }
+    });
+
+    let claudeNew = keepParts.join('\n\n');
+    const extra = newInstr.value.trim();
+    if (extra) claudeNew += '\n\n---\n\n# DODATKOWE INSTRUKCJE\n\n' + extra + '\n';
+    if (memoryFiles.length) {
+      claudeNew += '\n\n---\n\n# INDEKS MEMORY (czytaj on-demand)\n\nPliki w `/Users/pinky/.claude/projects/-Users-pinky/memory/`. Czytaj gdy temat jest istotny dla biezacego zadania.\n\n';
+      claudeNew += indexEntries.join('\n') + '\n';
+    }
+
+    zip.file('CLAUDE_NEW.md', claudeNew);
+    memoryFiles.forEach(m => zip.file(`memory/${m.name}`, m.body));
+    zip.file('OPTIMIZATION_REPORT.md', buildReport(claudeNew, memoryFiles, deletedTitles));
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `claude_md_optimizer_${new Date().toISOString().slice(0,10)}.zip`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    btnGen.textContent = 'Gotowe. Pobrano ZIP.';
+    setTimeout(() => { btnGen.textContent = 'Generuj CLAUDE.md i pliki memory'; recompute(); }, 3000);
+  } catch (e) {
+    console.error(e);
+    btnGen.textContent = 'Blad: ' + e.message;
+    setTimeout(() => { btnGen.textContent = 'Generuj CLAUDE.md i pliki memory'; recompute(); }, 4000);
+  }
+});
+
+function buildReport(claudeNew, mFiles, deleted) {
+  const oldSize = data.stats.total_chars;
+  const newSize = claudeNew.length;
+  const saved = oldSize - newSize;
+  const pct = (saved / oldSize * 100).toFixed(1);
+  const lines = [
+    '# CLAUDE.md Optimization Report',
+    '',
+    `Wygenerowano: ${new Date().toLocaleString('pl-PL', { timeZone: 'Europe/Amsterdam' })}`,
+    '',
+    '## Rozmiar',
+    '',
+    `- Stary CLAUDE.md: ${oldSize.toLocaleString('pl-PL')} znakow`,
+    `- Nowy CLAUDE.md: ${newSize.toLocaleString('pl-PL')} znakow`,
+    `- Oszczednosc: ${saved.toLocaleString('pl-PL')} znakow (${pct}%)`,
+    `- Cel 35 000: ${newSize <= 35000 ? 'OSIAGNIETY' : 'PRZEKROCZONY o ' + (newSize - 35000)}`,
+    '',
+    `## Pliki memory (${mFiles.length})`,
+    '',
+    ...mFiles.map(m => `- ${m.name} (${m.chars} znakow), ${m.title}`),
+    '',
+    `## Usuniete sekcje (${deleted.length})`,
+    '',
+    ...deleted.map(t => `- ${t}`),
+    '',
+    '## Co dalej',
+    '',
+    '1. Rozpakuj ZIP',
+    '2. Skopiuj CLAUDE_NEW.md na /Users/pinky/CLAUDE.md (po backupie)',
+    '3. Skopiuj memory/*.md do /Users/pinky/.claude/projects/-Users-pinky/memory/',
+    '4. Zaktualizuj MEMORY.md index dopisujac nowe wpisy',
+    '5. Powiedz CC: "OK podmieniaj" zeby zrobic to automatycznie z backupem',
+    '',
+    'Pinky Creative Studio',
+    'klantenservice@stopmetzoeken.store',
+    '+31 6 38 90 94 16'
+  ];
+  return lines.join('\n');
+}
+
+// Konami easter egg
+const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+let kIdx = 0;
+window.addEventListener('keydown', (e) => {
+  if (e.key === KONAMI[kIdx]) { kIdx++; if (kIdx === KONAMI.length) { kIdx = 0; showKonami(); } } else { kIdx = 0; }
+});
+function showKonami() {
+  const overlay = document.getElementById('konamiOverlay');
+  const preview = document.getElementById('konamiPreview');
+  const parts = [];
+  document.querySelectorAll('.section-card').forEach(card => {
+    const act = card.querySelector('input[type=radio]:checked').value;
+    if (act !== 'keep') return;
+    const content = card.querySelector('.content').value;
+    parts.push(content.replace(/^(#{1,3})\s+(.+)$/m, (m, hash, title) => {
+      return `${hash} [${pickTag(title)}] ${title}`;
+    }));
+  });
+  preview.textContent = parts.join('\n\n').slice(0, 3000) + '\n\n[... preview only ...]';
+  overlay.classList.add('show');
+}
+function pickTag(t) {
+  const lt = t.toLowerCase();
+  if (lt.includes('autoryzacja') || lt.includes('happy')) return 'KEY';
+  if (lt.includes('design')) return 'PAL';
+  if (lt.includes('mobile')) return 'MOB';
+  if (lt.includes('zasady') || lt.includes('rule')) return 'STR';
+  if (lt.includes('contact') || lt.includes('kontakt')) return 'TEL';
+  return 'PIN';
+}
+document.getElementById('konamiClose').addEventListener('click', () => {
+  document.getElementById('konamiOverlay').classList.remove('show');
+});
+
+if (new URLSearchParams(location.search).get('pinky') === '1') {
+  document.getElementById('nocturnalBadge').style.display = 'block';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLAUDE.md Optimizer · Pinky Creative Studio</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+* { box-sizing: border-box; }
+:root {
+  --bg: #080810;
+  --surface: #12121A;
+  --surface-2: #1A1A24;
+  --border: rgba(255,255,255,0.06);
+  --border-strong: rgba(255,255,255,0.12);
+  --text: #F0F0FF;
+  --muted: #8888A0;
+  --accent: #6C63FF;
+  --accent-soft: rgba(108,99,255,0.12);
+  --warn: #FF4D6D;
+  --warn-soft: rgba(255,77,109,0.13);
+  --warn-strong: rgba(255,77,109,0.25);
+  --ok: #3DDC84;
+  --ok-soft: rgba(61,220,132,0.12);
+  --gold: #C4A24C;
+  --orange: #FFA84C;
+  --orange-soft: rgba(255,168,76,0.14);
+}
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "SF Pro Display", "Segoe UI", sans-serif;
+  margin: 0; padding: 0; font-size: 14px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.app { max-width: 1280px; margin: 0 auto; padding: 0 24px 220px; }
+header.top {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(8,8,16,0.95);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 16px 24px 14px;
+  margin: 0 -24px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.top-row1 { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+.top-row1 h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.top-row1 .sub { color: var(--muted); font-size: 11px; }
+.top-row1 .actions-global {
+  margin-left: auto; display: flex; gap: 6px;
+}
+.btn-mini {
+  background: var(--surface-2); border: 1px solid var(--border-strong);
+  color: var(--text); padding: 5px 10px; border-radius: 6px;
+  font-size: 11px; cursor: pointer; font-family: inherit;
+}
+.btn-mini:hover { border-color: var(--accent); color: var(--accent); }
+.bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.counter { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 16px; }
+.counter .target { color: var(--muted); font-weight: 400; font-size: 12px; }
+.progress {
+  flex: 1; min-width: 180px; height: 6px; background: var(--surface-2);
+  border-radius: 999px; overflow: hidden;
+}
+.progress > div { height: 100%; width: 0%; background: var(--ok); transition: width 0.3s, background 0.3s; }
+.progress.warn > div { background: var(--gold); }
+.progress.over > div { background: var(--warn); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  font-size: 11px; padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--border-strong); font-variant-numeric: tabular-nums;
+}
+.chip.keep { color: var(--ok); background: var(--ok-soft); border-color: transparent; }
+.chip.move { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.chip.delete { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
+.chip.dup { color: var(--orange); background: var(--orange-soft); border-color: transparent; }
+.chip.conf { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
+
+.legend {
+  display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px;
+  color: var(--muted); margin-top: 8px;
+}
+.legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+
+.toolbar-row {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center;
+}
+.toolbar-row label.search-wrap {
+  flex: 1; min-width: 200px; position: relative;
+}
+.toolbar-row input.search {
+  width: 100%; padding: 6px 10px; font-size: 12px;
+  background: var(--surface-2); border: 1px solid var(--border-strong);
+  color: var(--text); border-radius: 6px;
+  font-family: inherit;
+}
+.toolbar-row .filter-group {
+  display: flex; gap: 4px; padding: 2px;
+  background: var(--surface-2); border-radius: 7px;
+  border: 1px solid var(--border);
+}
+.toolbar-row .filter-group button {
+  background: transparent; border: 0; color: var(--muted);
+  padding: 4px 9px; font-size: 11px; border-radius: 5px;
+  cursor: pointer; font-family: inherit;
+}
+.toolbar-row .filter-group button.active {
+  background: var(--bg); color: var(--text);
+}
+
+.section-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 14px;
+  padding: 16px 18px;
+  transition: border-color 0.15s;
+  scroll-margin-top: 140px;
+}
+.section-card:hover { border-color: var(--border-strong); }
+.section-card.act-keep { border-left: 3px solid var(--ok); }
+.section-card.act-move { border-left: 3px solid var(--accent); }
+.section-card.act-delete { border-left: 3px solid var(--warn); opacity: 0.55; }
+.section-card.has-conflict { box-shadow: 0 0 0 1px var(--warn-strong); }
+
+.sc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.sc-num {
+  font-size: 10px; color: var(--muted);
+  background: var(--surface-2); border-radius: 4px;
+  padding: 2px 6px; font-variant-numeric: tabular-nums;
+}
+.sc-level {
+  font-size: 9px; color: var(--muted); border: 1px solid var(--border-strong);
+  padding: 2px 5px; border-radius: 4px;
+}
+.sc-title { font-size: 14px; font-weight: 600; flex: 1; min-width: 220px; }
+.sc-meta { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sc-meta .saved { color: var(--ok); }
+.sc-meta .grew { color: var(--warn); }
+
+.actions { display: flex; gap: 6px; }
+.actions label {
+  display: inline-flex; align-items: center;
+  padding: 5px 10px; font-size: 11px;
+  border: 1px solid var(--border-strong); border-radius: 6px;
+  cursor: pointer; user-select: none;
+  transition: background 0.12s, border-color 0.12s;
+}
+.actions label:hover { background: var(--surface-2); }
+.actions input[type=radio] { display: none; }
+.actions label:has(input[value=keep]:checked) { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.actions label:has(input[value=move]:checked) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.actions label:has(input[value=delete]:checked) { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+
+.flags-row {
+  display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px;
+}
+.flag {
+  font-size: 11px; padding: 3px 9px; border-radius: 6px;
+  display: inline-flex; align-items: center; gap: 5px;
+  cursor: pointer; user-select: none;
+  border: 1px solid transparent;
+}
+.flag.dup {
+  background: var(--orange-soft); color: var(--orange);
+  border-color: rgba(255,168,76,0.4);
+}
+.flag.conf {
+  background: var(--warn-soft); color: var(--warn);
+  border-color: var(--warn-strong);
+}
+.flag .icn { font-size: 10px; }
+.flag .ref { font-weight: 600; font-variant-numeric: tabular-nums; }
+.flag-detail {
+  font-size: 11px; color: var(--muted); margin: 0 0 8px;
+  padding: 8px 10px; background: var(--surface-2); border-radius: 8px;
+  border-left: 2px solid var(--warn); display: none;
+}
+.flag-detail.show { display: block; }
+.flag-detail ul { margin: 4px 0 0 18px; padding: 0; }
+
+.filename-row { margin: 8px 0; display: none; gap: 8px; align-items: center; }
+.section-card.act-move .filename-row { display: flex; }
+.filename-row label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+input[type=text], textarea {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px; padding: 8px 12px;
+  font-family: inherit; font-size: 13px; width: 100%;
+}
+input[type=text]:focus, textarea:focus { outline: none; border-color: var(--accent); }
+textarea {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+  font-size: 12px; line-height: 1.55;
+  resize: vertical; min-height: 280px;
+  white-space: pre;
+}
+textarea.collapsed { min-height: 90px; max-height: 90px; }
+.ta-row { display: flex; flex-direction: column; gap: 6px; }
+.ta-meta {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11px; color: var(--muted); gap: 8px; flex-wrap: wrap;
+}
+.ta-meta .left { display: flex; gap: 8px; align-items: center; }
+.btn-tiny {
+  background: var(--surface-2); border: 1px solid var(--border-strong);
+  color: var(--text); padding: 4px 9px; border-radius: 5px;
+  font-size: 10px; cursor: pointer; font-family: inherit;
+}
+.btn-tiny:hover { border-color: var(--accent); color: var(--accent); }
+.btn-tiny.warn:hover { border-color: var(--warn); color: var(--warn); }
+
+.section-card.hide { display: none; }
+
+footer.bottom {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(8,8,16,0.97);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--border);
+  padding: 12px 24px; z-index: 100;
+}
+.bottom-inner { max-width: 1280px; margin: 0 auto; display: flex; gap: 14px; align-items: flex-end; }
+.bottom-left { flex: 1; }
+.bottom-left label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px; }
+.bottom-left textarea { min-height: 56px; font-family: inherit; font-size: 13px; white-space: normal; }
+.btn-generate {
+  background: var(--accent); color: white;
+  border: 0; padding: 13px 20px; border-radius: 10px;
+  font-weight: 600; font-size: 13px; cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s; white-space: nowrap;
+}
+.btn-generate:hover { transform: translateY(-1px); }
+.btn-generate:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.brand {
+  font-size: 10px; color: var(--muted); text-align: right;
+  line-height: 1.4; min-width: 180px;
+}
+.brand .gold { color: var(--gold); font-weight: 600; }
+
+.nocturnal-badge {
+  position: fixed; top: 12px; right: 12px;
+  background: var(--surface); border: 1px solid var(--gold);
+  color: var(--gold); padding: 4px 10px; border-radius: 999px;
+  font-size: 10px; display: none; z-index: 200;
+}
+.konami-overlay {
+  position: fixed; inset: 0;
+  background: rgba(8,8,16,0.92);
+  display: none; align-items: center; justify-content: center;
+  z-index: 999; backdrop-filter: blur(6px);
+}
+.konami-overlay.show { display: flex; }
+.konami-card {
+  background: var(--surface); border: 1px solid var(--accent);
+  border-radius: 14px; padding: 24px; max-width: 640px; width: 92%;
+  max-height: 80vh; overflow: auto;
+}
+.konami-card h2 { margin: 0 0 6px; font-size: 16px; }
+.konami-card pre {
+  background: var(--bg); border-radius: 8px; padding: 14px;
+  font-size: 11px; line-height: 1.5; overflow: auto; max-height: 50vh;
+}
+.konami-card .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+
+@media (max-width: 720px) {
+  .app { padding: 0 14px 240px; }
+  header.top { padding: 12px 14px; margin: 0 -14px 14px; }
+  .bottom-inner { flex-direction: column; align-items: stretch; }
+  .brand { text-align: left; }
+  textarea { min-height: 200px; }
+}
+</style>
+</head>
+<body>
+<div class="nocturnal-badge" id="nocturnalBadge">nocturnal mode</div>
+<div class="konami-overlay" id="konamiOverlay">
+  <div class="konami-card">
+    <h2>Eksportuj jako emoji <span style="color:var(--muted);font-weight:400;font-size:12px">tooltip: Export with emoji headers</span></h2>
+    <p style="font-size:12px;color:var(--muted)">Podglad nowego CLAUDE.md z dodanymi etykietami w naglowkach. Tylko preview.</p>
+    <pre id="konamiPreview"></pre>
+    <div class="row">
+      <button class="btn-mini" id="konamiClose">Zamknij</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+<header class="top">
+  <div class="top-row1">
+    <h1>CLAUDE.md Optimizer</h1>
+    <span class="sub">Pinky Creative Studio &middot; target ponizej 35 000 znakow</span>
+    <div class="actions-global">
+      <button class="btn-mini" id="btnExpandAll" title="Rozwin wszystkie / Expand all / Alle uitvouwen">Rozwin wszystkie</button>
+      <button class="btn-mini" id="btnCollapseAll" title="Zwin wszystkie / Collapse all / Alle inklappen">Zwin wszystkie</button>
+      <button class="btn-mini" id="btnReset" title="Reset suggestions / Reset suggesties">Reset sugestii</button>
+    </div>
+  </div>
+  <div class="bar">
+    <div class="counter"><span id="liveChars">0</span><span class="target"> / 35 000</span></div>
+    <div class="progress" id="progress"><div></div></div>
+    <div class="chips">
+      <span class="chip keep" title="Keep / Blijft">Zostaje: <span id="cKeep">0</span></span>
+      <span class="chip move" title="Memory / Geheugen">Memory: <span id="cMove">0</span></span>
+      <span class="chip delete" title="Deleted / Verwijderd">Usuniete: <span id="cDel">0</span></span>
+      <span class="chip dup" title="Duplicates flagged / Duplicaten">Duplikaty: <span id="cDup">0</span></span>
+      <span class="chip conf" title="Conflicts flagged / Conflicten">Konflikty: <span id="cConf">0</span></span>
+    </div>
+  </div>
+  <div class="toolbar-row">
+    <label class="search-wrap">
+      <input class="search" id="search" type="text" placeholder="Szukaj w tytulach lub tresci...">
+    </label>
+    <div class="filter-group" id="filterGroup">
+      <button data-f="all" class="active">Wszystkie</button>
+      <button data-f="keep">Zostaje</button>
+      <button data-f="move">Memory</button>
+      <button data-f="delete">Usun</button>
+      <button data-f="dup">Z duplikatami</button>
+      <button data-f="conf">Z konfliktami</button>
+    </div>
+  </div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--ok)"></span>Zostaje (KEEP)</span>
+    <span><span class="dot" style="background:var(--accent)"></span>Memory (przeniesc)</span>
+    <span><span class="dot" style="background:var(--warn)"></span>Usun</span>
+    <span><span class="dot" style="background:var(--orange)"></span>Powtorzenie z inna sekcja</span>
+    <span><span class="dot" style="background:var(--warn)"></span>Sprzecznosc reguly</span>
+  </div>
+</header>
+<main id="sectionsList"></main>
+</div>
+
+<footer class="bottom">
+<div class="bottom-inner">
+  <div class="bottom-left">
+    <label for="newInstr">Dodatkowe nowe instrukcje (opcjonalnie). Trafia do nowego CLAUDE.md.</label>
+    <textarea id="newInstr" placeholder="np. nowe reguly ktore chcesz dorzucic..."></textarea>
+  </div>
+  <button class="btn-generate" id="btnGenerate" disabled title="Generate ZIP / Genereer ZIP">Generuj CLAUDE.md i pliki memory</button>
+  <div class="brand">
+    <div class="gold">Pinky Creative Studio</div>
+    <div>klantenservice@stopmetzoeken.store</div>
+    <div>+31 6 38 90 94 16</div>
+  </div>
+</div>
+</footer>
+
+<script id="data" type="application/json">__DATA_PLACEHOLDER__</script>
+<script>
+console.log("%c\n  ____  _       _\n |  _ \\(_)_ __ | | ___   _\n | |_) | | '_ \\| |/ / | | |\n |  __/| | | | |   <| |_| |\n |_|   |_|_| |_|_|\\_\\\\__, |\n                    |___/\n  Pinky tu byl  /  Pinky was here  /  Pinky was hier\n  Pinky Creative Studio\n", "color:#6C63FF;font-family:monospace");
+
+const data = JSON.parse(document.getElementById('data').textContent);
+const TARGET_MAX = 35000;
+const list = document.getElementById('sectionsList');
+const liveChars = document.getElementById('liveChars');
+const progressEl = document.getElementById('progress');
+const progressFill = progressEl.querySelector('div');
+const cKeep = document.getElementById('cKeep');
+const cMove = document.getElementById('cMove');
+const cDel = document.getElementById('cDel');
+const cDup = document.getElementById('cDup');
+const cConf = document.getElementById('cConf');
+const btnGen = document.getElementById('btnGenerate');
+const newInstr = document.getElementById('newInstr');
+const search = document.getElementById('search');
+const filterGroup = document.getElementById('filterGroup');
+let activeFilter = 'all';
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+function titleOf(id) {
+  const s = data.sections[id];
+  return s ? `#${s.id+1} ${s.title}` : `#${id+1}`;
+}
+
+function renderFlags(s) {
+  const parts = [];
+  if (s.duplicates && s.duplicates.length) {
+    const items = s.duplicates.map(d => {
+      if (d.kind === 'phrase') {
+        const refs = d.with.map(x => `<a href="#sec-${x}" class="ref">#${x+1}</a>`).join(' ');
+        return `<li>fraza "<b>${escapeHtml(d.label)}</b>" tez w: ${refs}</li>`;
+      } else {
+        const targets = Array.isArray(d.with) ? d.with : [d.with];
+        const refs = targets.map(x => `<a href="#sec-${x}" class="ref">#${x+1}</a>`).join(' ');
+        return `<li>linia "${escapeHtml((d.sample || '').slice(0, 90))}..." tez w: ${refs}</li>`;
+      }
+    });
+    parts.push(`
+      <span class="flag dup" data-detail="dup-${s.id}">
+        <span class="icn">DUP</span> Duplikaty <span class="ref">${s.duplicates.length}</span>
+      </span>
+    `);
+    parts.push(`<div class="flag-detail" id="dup-${s.id}">
+      <b>Powtorzenia z innymi sekcjami:</b>
+      <ul>${items.join('')}</ul>
+    </div>`);
+  }
+  if (s.conflicts && s.conflicts.length) {
+    const items = s.conflicts.map(c => {
+      const ref = (c.with !== s.id) ? `<a href="#sec-${c.with}" class="ref">#${c.with+1}</a>` : '<i>(wewnatrz)</i>';
+      return `<li><b>${escapeHtml(c.label)}</b> &mdash; ${escapeHtml(c.note || '')} ${ref}</li>`.replace('&mdash;', ',');
+    });
+    parts.push(`
+      <span class="flag conf" data-detail="conf-${s.id}">
+        <span class="icn">CONF</span> Konflikty <span class="ref">${s.conflicts.length}</span>
+      </span>
+    `);
+    parts.push(`<div class="flag-detail" id="conf-${s.id}">
+      <b>Sprzecznosci reguly:</b>
+      <ul>${items.join('')}</ul>
+    </div>`);
+  }
+  return parts.length ? `<div class="flags-row">${parts.join('')}</div>` : '';
+}
+
+// Build cards
+data.sections.forEach((s) => {
+  const card = document.createElement('div');
+  card.className = 'section-card act-' + s.suggested_action;
+  if (s.conflicts && s.conflicts.length) card.classList.add('has-conflict');
+  card.dataset.id = s.id;
+  card.id = 'sec-' + s.id;
+  card.innerHTML = `
+    <div class="sc-head">
+      <span class="sc-num">#${s.id+1}</span>
+      <span class="sc-level">H${s.level || 0}</span>
+      <div class="sc-title">${escapeHtml(s.title)}</div>
+      <div class="sc-meta"><span class="orig-chars">${s.chars}</span> znakow oryg., <span class="cur-chars">${s.chars}</span> teraz <span class="diff"></span></div>
+      <div class="actions">
+        <label title="Keep / Blijft"><input type="radio" name="act-${s.id}" value="keep" ${s.suggested_action === 'keep' ? 'checked' : ''}>Zostaw</label>
+        <label title="Move to memory / Verplaats"><input type="radio" name="act-${s.id}" value="move" ${s.suggested_action === 'move' ? 'checked' : ''}>Memory</label>
+        <label title="Delete / Verwijder"><input type="radio" name="act-${s.id}" value="delete" ${s.suggested_action === 'delete' ? 'checked' : ''}>Usun</label>
+      </div>
+    </div>
+    ${renderFlags(s)}
+    <div class="filename-row">
+      <label title="Nazwa pliku w pinky-memory">Plik:</label>
+      <input type="text" class="fname" value="${escapeHtml(s.suggested_filename || '')}" placeholder="feedback_xxx.md">
+    </div>
+    <div class="ta-row">
+      <textarea class="content collapsed" rows="14" spellcheck="false">${escapeHtml(s.content)}</textarea>
+      <div class="ta-meta">
+        <div class="left">
+          <button class="btn-tiny btn-toggle" type="button" title="Rozwin / Collapse">Rozwin</button>
+          <button class="btn-tiny btn-shrink" type="button" title="Skroc o 50%">Skroc o 50%</button>
+          <button class="btn-tiny btn-revert" type="button" title="Przywroc oryginal">Przywroc oryginal</button>
+        </div>
+        <span><span class="ta-cur">${s.chars}</span> / <span class="ta-orig">${s.chars}</span> znakow</span>
+      </div>
+    </div>
+  `;
+  list.appendChild(card);
+
+  // Wire events
+  card.querySelectorAll('input[type=radio]').forEach(r => {
+    r.addEventListener('change', () => {
+      card.className = 'section-card act-' + r.value + (s.conflicts && s.conflicts.length ? ' has-conflict' : '');
+      recompute();
+    });
+  });
+
+  const ta = card.querySelector('.content');
+  ta.addEventListener('input', () => updateMeta(card));
+
+  card.querySelector('.btn-toggle').addEventListener('click', (e) => {
+    ta.classList.toggle('collapsed');
+    e.target.textContent = ta.classList.contains('collapsed') ? 'Rozwin' : 'Zwin';
+  });
+  card.querySelector('.btn-shrink').addEventListener('click', () => {
+    ta.value = shrinkContent(ta.value);
+    updateMeta(card);
+  });
+  card.querySelector('.btn-revert').addEventListener('click', () => {
+    ta.value = data.sections[s.id].content;
+    updateMeta(card);
+  });
+
+  card.querySelectorAll('.flag').forEach(f => {
+    f.addEventListener('click', () => {
+      const id = f.dataset.detail;
+      const det = card.querySelector('#' + id);
+      if (det) det.classList.toggle('show');
+    });
+  });
+
+  // Reference links inside flag details
+  card.querySelectorAll('.flag-detail a.ref').forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const tgt = document.querySelector(a.getAttribute('href'));
+      if (tgt) {
+        tgt.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        tgt.style.outline = '2px solid var(--accent)';
+        setTimeout(() => { tgt.style.outline = ''; }, 1500);
+      }
+    });
+  });
+});
+
+function updateMeta(card) {
+  const ta = card.querySelector('.content');
+  const cur = ta.value.length;
+  const orig = parseInt(card.querySelector('.orig-chars').textContent);
+  card.querySelector('.cur-chars').textContent = cur;
+  card.querySelector('.ta-cur').textContent = cur;
+  const diff = card.querySelector('.diff');
+  const delta = cur - orig;
+  if (delta < 0) diff.innerHTML = ` <span class="saved">(-${-delta})</span>`;
+  else if (delta > 0) diff.innerHTML = ` <span class="grew">(+${delta})</span>`;
+  else diff.innerHTML = '';
+  recompute();
+}
+
+function shrinkContent(text) {
+  const lines = text.split('\n');
+  const kept = []; let inCode = false; let bulletDepth = 0;
+  for (const l of lines) {
+    const trimmed = l.trim();
+    if (trimmed.startsWith('```')) { inCode = !inCode; kept.push(l); continue; }
+    if (inCode) { continue; }
+    if (/^#{1,6}\s/.test(trimmed)) { kept.push(l); bulletDepth = 0; continue; }
+    if (trimmed === '') { if (kept.length && kept[kept.length-1].trim() !== '') kept.push(l); continue; }
+    if (/^[-*]\s/.test(trimmed)) {
+      bulletDepth++;
+      if (bulletDepth <= 3) kept.push(l);
+      continue;
+    }
+    bulletDepth = 0;
+    const firstSent = trimmed.split(/(?<=[.!?])\s+/)[0];
+    kept.push(l.replace(trimmed, firstSent));
+  }
+  return kept.join('\n').replace(/\n{3,}/g, '\n\n');
+}
+
+function recompute() {
+  let total = 0, keep = 0, move = 0, del = 0, dup = 0, conf = 0;
+  document.querySelectorAll('.section-card').forEach(card => {
+    const id = parseInt(card.dataset.id);
+    const orig = data.sections[id];
+    const act = card.querySelector('input[type=radio]:checked').value;
+    const len = card.querySelector('.content').value.length;
+    if (act === 'keep') { total += len; keep++; }
+    else if (act === 'move') move++;
+    else del++;
+    if (orig.duplicates && orig.duplicates.length) dup++;
+    if (orig.conflicts && orig.conflicts.length) conf++;
+  });
+  total += newInstr.value.length;
+  total += 700;
+  liveChars.textContent = total.toLocaleString('pl-PL').replace(/ /g, ' ');
+  cKeep.textContent = keep; cMove.textContent = move; cDel.textContent = del;
+  cDup.textContent = dup; cConf.textContent = conf;
+  const pct = Math.min(100, total / TARGET_MAX * 100);
+  progressFill.style.width = pct + '%';
+  progressEl.classList.remove('warn', 'over');
+  if (total > TARGET_MAX) progressEl.classList.add('over');
+  else if (total > TARGET_MAX * 0.85) progressEl.classList.add('warn');
+  btnGen.disabled = total > TARGET_MAX;
+}
+
+newInstr.addEventListener('input', recompute);
+recompute();
+
+// Search + filter
+function applyFilter() {
+  const q = search.value.trim().toLowerCase();
+  document.querySelectorAll('.section-card').forEach(card => {
+    const id = parseInt(card.dataset.id);
+    const orig = data.sections[id];
+    const act = card.querySelector('input[type=radio]:checked').value;
+    const titleMatch = !q || orig.title.toLowerCase().includes(q) || orig.content.toLowerCase().includes(q);
+    let typeMatch = true;
+    if (activeFilter === 'keep') typeMatch = (act === 'keep');
+    else if (activeFilter === 'move') typeMatch = (act === 'move');
+    else if (activeFilter === 'delete') typeMatch = (act === 'delete');
+    else if (activeFilter === 'dup') typeMatch = (orig.duplicates && orig.duplicates.length > 0);
+    else if (activeFilter === 'conf') typeMatch = (orig.conflicts && orig.conflicts.length > 0);
+    card.classList.toggle('hide', !(titleMatch && typeMatch));
+  });
+}
+search.addEventListener('input', applyFilter);
+filterGroup.querySelectorAll('button').forEach(b => {
+  b.addEventListener('click', () => {
+    filterGroup.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    activeFilter = b.dataset.f;
+    applyFilter();
+  });
+});
+
+// Top-bar actions
+document.getElementById('btnExpandAll').addEventListener('click', () => {
+  document.querySelectorAll('.content').forEach(t => t.classList.remove('collapsed'));
+  document.querySelectorAll('.btn-toggle').forEach(b => b.textContent = 'Zwin');
+});
+document.getElementById('btnCollapseAll').addEventListener('click', () => {
+  document.querySelectorAll('.content').forEach(t => t.classList.add('collapsed'));
+  document.querySelectorAll('.btn-toggle').forEach(b => b.textContent = 'Rozwin');
+});
+document.getElementById('btnReset').addEventListener('click', () => {
+  if (!confirm('Cofnac wszystkie zmiany do sugestii startowych?')) return;
+  document.querySelectorAll('.section-card').forEach(card => {
+    const id = parseInt(card.dataset.id);
+    const orig = data.sections[id];
+    card.querySelectorAll('input[type=radio]').forEach(r => {
+      r.checked = (r.value === orig.suggested_action);
+    });
+    card.className = 'section-card act-' + orig.suggested_action + (orig.conflicts && orig.conflicts.length ? ' has-conflict' : '');
+    card.querySelector('.content').value = orig.content;
+    updateMeta(card);
+  });
+  recompute();
+});
+
+// ZIP generation
+btnGen.addEventListener('click', async () => {
+  btnGen.disabled = true;
+  btnGen.textContent = 'Buduje ZIP...';
+  try {
+    const zip = new JSZip();
+    const keepParts = [];
+    const memoryFiles = [];
+    const deletedTitles = [];
+    const indexEntries = [];
+
+    document.querySelectorAll('.section-card').forEach(card => {
+      const id = parseInt(card.dataset.id);
+      const orig = data.sections[id];
+      const act = card.querySelector('input[type=radio]:checked').value;
+      const content = card.querySelector('.content').value;
+      const fname = card.querySelector('.fname').value.trim();
+      if (act === 'keep') {
+        keepParts.push(content);
+      } else if (act === 'move') {
+        const safe = (fname || `feedback_section_${id+1}.md`).replace(/[^\w.-]/g, '_');
+        const today = new Date().toISOString().slice(0,10);
+        const fm = `---\nname: ${orig.title}\ndescription: Migracja z CLAUDE.md ${today}\ntype: feedback\n---\n\n${content}\n`;
+        memoryFiles.push({ name: safe, body: fm, title: orig.title, chars: content.length });
+        indexEntries.push(`- [${safe}](${safe}) - ${orig.title.slice(0, 80)}`);
+      } else {
+        deletedTitles.push(orig.title);
+      }
+    });
+
+    let claudeNew = keepParts.join('\n\n');
+    const extra = newInstr.value.trim();
+    if (extra) claudeNew += '\n\n---\n\n# DODATKOWE INSTRUKCJE\n\n' + extra + '\n';
+    if (memoryFiles.length) {
+      claudeNew += '\n\n---\n\n# INDEKS MEMORY (czytaj on-demand)\n\nPliki w `/Users/pinky/.claude/projects/-Users-pinky/memory/`. Czytaj gdy temat jest istotny dla biezacego zadania.\n\n';
+      claudeNew += indexEntries.join('\n') + '\n';
+    }
+
+    zip.file('CLAUDE_NEW.md', claudeNew);
+    memoryFiles.forEach(m => zip.file(`memory/${m.name}`, m.body));
+    zip.file('OPTIMIZATION_REPORT.md', buildReport(claudeNew, memoryFiles, deletedTitles));
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `claude_md_optimizer_${new Date().toISOString().slice(0,10)}.zip`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    btnGen.textContent = 'Gotowe. Pobrano ZIP.';
+    setTimeout(() => { btnGen.textContent = 'Generuj CLAUDE.md i pliki memory'; recompute(); }, 3000);
+  } catch (e) {
+    console.error(e);
+    btnGen.textContent = 'Blad: ' + e.message;
+    setTimeout(() => { btnGen.textContent = 'Generuj CLAUDE.md i pliki memory'; recompute(); }, 4000);
+  }
+});
+
+function buildReport(claudeNew, mFiles, deleted) {
+  const oldSize = data.stats.total_chars;
+  const newSize = claudeNew.length;
+  const saved = oldSize - newSize;
+  const pct = (saved / oldSize * 100).toFixed(1);
+  const lines = [
+    '# CLAUDE.md Optimization Report',
+    '',
+    `Wygenerowano: ${new Date().toLocaleString('pl-PL', { timeZone: 'Europe/Amsterdam' })}`,
+    '',
+    '## Rozmiar',
+    '',
+    `- Stary CLAUDE.md: ${oldSize.toLocaleString('pl-PL')} znakow`,
+    `- Nowy CLAUDE.md: ${newSize.toLocaleString('pl-PL')} znakow`,
+    `- Oszczednosc: ${saved.toLocaleString('pl-PL')} znakow (${pct}%)`,
+    `- Cel 35 000: ${newSize <= 35000 ? 'OSIAGNIETY' : 'PRZEKROCZONY o ' + (newSize - 35000)}`,
+    '',
+    `## Pliki memory (${mFiles.length})`,
+    '',
+    ...mFiles.map(m => `- ${m.name} (${m.chars} znakow), ${m.title}`),
+    '',
+    `## Usuniete sekcje (${deleted.length})`,
+    '',
+    ...deleted.map(t => `- ${t}`),
+    '',
+    '## Co dalej',
+    '',
+    '1. Rozpakuj ZIP',
+    '2. Skopiuj CLAUDE_NEW.md na /Users/pinky/CLAUDE.md (po backupie)',
+    '3. Skopiuj memory/*.md do /Users/pinky/.claude/projects/-Users-pinky/memory/',
+    '4. Zaktualizuj MEMORY.md index dopisujac nowe wpisy',
+    '5. Powiedz CC: "OK podmieniaj" zeby zrobic to automatycznie z backupem',
+    '',
+    'Pinky Creative Studio',
+    'klantenservice@stopmetzoeken.store',
+    '+31 6 38 90 94 16'
+  ];
+  return lines.join('\n');
+}
+
+// Konami easter egg
+const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+let kIdx = 0;
+window.addEventListener('keydown', (e) => {
+  if (e.key === KONAMI[kIdx]) { kIdx++; if (kIdx === KONAMI.length) { kIdx = 0; showKonami(); } } else { kIdx = 0; }
+});
+function showKonami() {
+  const overlay = document.getElementById('konamiOverlay');
+  const preview = document.getElementById('konamiPreview');
+  const parts = [];
+  document.querySelectorAll('.section-card').forEach(card => {
+    const act = card.querySelector('input[type=radio]:checked').value;
+    if (act !== 'keep') return;
+    const content = card.querySelector('.content').value;
+    parts.push(content.replace(/^(#{1,3})\s+(.+)$/m, (m, hash, title) => {
+      return `${hash} [${pickTag(title)}] ${title}`;
+    }));
+  });
+  preview.textContent = parts.join('\n\n').slice(0, 3000) + '\n\n[... preview only ...]';
+  overlay.classList.add('show');
+}
+function pickTag(t) {
+  const lt = t.toLowerCase();
+  if (lt.includes('autoryzacja') || lt.includes('happy')) return 'KEY';
+  if (lt.includes('design')) return 'PAL';
+  if (lt.includes('mobile')) return 'MOB';
+  if (lt.includes('zasady') || lt.includes('rule')) return 'STR';
+  if (lt.includes('contact') || lt.includes('kontakt')) return 'TEL';
+  return 'PIN';
+}
+document.getElementById('konamiClose').addEventListener('click', () => {
+  document.getElementById('konamiOverlay').classList.remove('show');
+});
+
+if (new URLSearchParams(location.search).get('pinky') === '1') {
+  document.getElementById('nocturnalBadge').style.display = 'block';
+}
+</script>
+</body>
+</html>

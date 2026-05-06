@@ -1,0 +1,32 @@
+{
+  "name": "claude-md-optimizer",
+  "version": "1.0.0",
+  "description": "Interactive optimizer for CLAUDE.md global instruction files. Detects duplicates, contradictions, and shrinks oversized rule files into a slim master plus topical memory tree.",
+  "author": "Pinky Creative Studio",
+  "license": "MIT",
+  "homepage": "https://stopmetzoeken.store/apps/optimizer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Pinkers01/claude-md-optimizer"
+  },
+  "bugs": {
+    "url": "https://github.com/Pinkers01/claude-md-optimizer/issues",
+    "email": "klantenservice@stopmetzoeken.store"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "anthropic",
+    "llm",
+    "optimizer",
+    "context-engineering",
+    "memory",
+    "rules",
+    "prompt-engineering"
+  ],
+  "scripts": {
+    "build": "python3 src/build_html.py",
+    "parse": "python3 src/parser.py",
+    "serve": "node server/index.js"
+  }
+}
