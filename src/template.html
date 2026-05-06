@@ -56,8 +56,9 @@ header.top {
 }
 .btn-mini:hover { border-color: var(--accent); color: var(--accent); }
 .bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.counter { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 16px; }
+.counter { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 16px; display: flex; flex-direction: column; gap: 2px; }
 .counter .target { color: var(--muted); font-weight: 400; font-size: 12px; }
+.counter .orig-total { color: var(--gold); font-weight: 500; font-size: 11px; letter-spacing: 0.02em; }
 .progress {
   flex: 1; min-width: 180px; height: 6px; background: var(--surface-2);
   border-radius: 999px; overflow: hidden;
@@ -296,7 +297,10 @@ footer.bottom {
     </div>
   </div>
   <div class="bar">
-    <div class="counter"><span id="liveChars">0</span><span class="target"> / 35 000</span></div>
+    <div class="counter">
+      <span id="liveChars">0</span><span class="target"> / 35 000 po keepach</span>
+      <span class="orig-total">oryginal: <span id="origTotal">0</span> znakow w <span id="secCount">0</span> sekcjach</span>
+    </div>
     <div class="progress" id="progress"><div></div></div>
     <div class="chips">
       <span class="chip keep" title="Keep / Blijft">Zostaje: <span id="cKeep">0</span></span>
@@ -441,10 +445,10 @@ data.sections.forEach((s) => {
       <input type="text" class="fname" value="${escapeHtml(s.suggested_filename || '')}" placeholder="feedback_xxx.md">
     </div>
     <div class="ta-row">
-      <textarea class="content collapsed" rows="14" spellcheck="false">${escapeHtml(s.content)}</textarea>
+      <textarea class="content" rows="14" spellcheck="false">${escapeHtml(s.content)}</textarea>
       <div class="ta-meta">
         <div class="left">
-          <button class="btn-tiny btn-toggle" type="button" title="Rozwin / Collapse">Rozwin</button>
+          <button class="btn-tiny btn-toggle" type="button" title="Rozwin / Collapse">Zwin</button>
           <button class="btn-tiny btn-shrink" type="button" title="Skroc o 50%">Skroc o 50%</button>
           <button class="btn-tiny btn-revert" type="button" title="Przywroc oryginal">Przywroc oryginal</button>
         </div>
@@ -536,12 +540,13 @@ function shrinkContent(text) {
 }
 
 function recompute() {
-  let total = 0, keep = 0, move = 0, del = 0, dup = 0, conf = 0;
+  let total = 0, origTotal = 0, keep = 0, move = 0, del = 0, dup = 0, conf = 0;
   document.querySelectorAll('.section-card').forEach(card => {
     const id = parseInt(card.dataset.id);
     const orig = data.sections[id];
     const act = card.querySelector('input[type=radio]:checked').value;
     const len = card.querySelector('.content').value.length;
+    origTotal += len;
     if (act === 'keep') { total += len; keep++; }
     else if (act === 'move') move++;
     else del++;
@@ -550,7 +555,9 @@ function recompute() {
   });
   total += newInstr.value.length;
   total += 700;
-  liveChars.textContent = total.toLocaleString('pl-PL').replace(/ /g, ' ');
+  liveChars.textContent = total.toLocaleString('pl-PL').replace(/ /g, ' ');
+  document.getElementById('origTotal').textContent = origTotal.toLocaleString('pl-PL').replace(/ /g, ' ');
+  document.getElementById('secCount').textContent = data.sections.length;
   cKeep.textContent = keep; cMove.textContent = move; cDel.textContent = del;
   cDup.textContent = dup; cConf.textContent = conf;
   const pct = Math.min(100, total / TARGET_MAX * 100);
