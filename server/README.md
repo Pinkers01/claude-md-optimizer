@@ -9,7 +9,7 @@ cd server
 cp .env.example .env             # fill MOLLIE_API_KEY + STRATO_SMTP_PASS later
 npm install
 npm run init-db
-npm run dev                      # http://localhost:3260/apps/optimizer/healthz
+npm run dev                      # http://localhost:3280/apps/optimizer/healthz
 ```
 
 Without a Mollie key the checkout endpoint runs in **stub mode**: it returns a fake `tr_DEV_*` payment id, the return page processes it inline, and the license email goes out (if SMTP is configured) or silently skips.

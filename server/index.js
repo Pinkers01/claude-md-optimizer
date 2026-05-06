@@ -19,8 +19,9 @@ const webhookModule = require('./routes/webhook');
 const downloadRoute = require('./routes/download');
 const returnRoute = require('./routes/return');
 const adminRoute = require('./routes/admin');
+const orderRoute = require('./routes/order');
 
-const PORT = parseInt(process.env.PORT || '3260', 10);
+const PORT = parseInt(process.env.PORT || '3280', 10);
 const BASE_PATH = (process.env.BASE_PATH || '/apps/optimizer').replace(/\/$/, '');
 const VERSION = process.env.PRODUCT_VERSION || '1.0.0';
 const START_TS = Date.now();
@@ -48,6 +49,7 @@ app.use(express.json({ limit: '64kb' }));
 // --- Routes ---
 const apiBase = `${BASE_PATH}/api`;
 
+app.use(apiBase, orderRoute);
 app.use(apiBase, checkoutRoute);
 app.use(apiBase, webhookModule.router);
 app.use(apiBase, downloadRoute);

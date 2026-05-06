@@ -12,7 +12,7 @@ const SLUG = 'optimizer';
 const NAME = 'CLAUDE.md Optimizer';
 const DESCRIPTION = 'Lokalna webapp do optymalizacji plikow CLAUDE.md. Wykrywa duplikaty, konflikty, dzieli na slim master + memory tree. 9 EUR lifetime.';
 const VERSION = process.env.PRODUCT_VERSION || '1.0.0';
-const PORT = parseInt(process.env.PORT || '3260', 10);
+const PORT = parseInt(process.env.PORT || '3280', 10);
 const BASE_PATH = process.env.BASE_PATH || '/apps/optimizer';
 const BASE_URL = process.env.BASE_URL || 'https://stopmetzoeken.store';
 

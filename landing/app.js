@@ -282,31 +282,74 @@
     });
   }
 
-  /* ---------------------- Mollie checkout (POST handoff) ---------------------- */
+  /* ---------------------- Manual payment flow (Revolut / IBAN) ---------------------- */
   function initCheckout(){
     document.querySelectorAll('[data-buy]').forEach(b => {
       b.addEventListener('click', e => {
         e.preventDefault();
-        const lang = document.documentElement.lang || 'nl';
-        // POST to placeholder API (server agent will implement)
-        const f = document.createElement('form');
-        f.method = 'POST';
-        f.action = '/apps/optimizer/api/checkout';
-        f.style.display = 'none';
-        const add = (n, v) => {
-          const i = document.createElement('input');
-          i.type = 'hidden'; i.name = n; i.value = v;
-          f.appendChild(i);
-        };
-        add('product', 'claude-md-optimizer-lifetime');
-        add('amount_eur', '9');
-        add('lang', lang);
-        add('source', location.pathname);
-        const ck = b.getAttribute('data-coupon') || (window.__coupon || '');
-        if (ck) add('coupon', ck);
-        document.body.appendChild(f);
-        f.submit();
+        showBuyModal();
       });
+    });
+  }
+
+  function showBuyModal(){
+    const lang = document.documentElement.lang || 'nl';
+    const labels = {
+      pl: {title:'Zakup CLAUDE.md Optimizer',sub:'Wybierz metode platnosci. Po zaplacie Pinky recznie potwierdza i email z licencja idzie do Ciebie zwykle w 12h.',email:'Twoj email',methodR:'Revolut Pay (zalecane)',methodI:'Przelew bankowy (IBAN)',submit:'Pokaz instrukcje',cancel:'Anuluj',err:'Wpisz prawidlowy email'},
+      en: {title:'Buy CLAUDE.md Optimizer',sub:'Pick a payment method. After payment Pinky confirms manually and the license email lands in your inbox usually within 12 hours.',email:'Your email',methodR:'Revolut Pay (recommended)',methodI:'Bank transfer (IBAN)',submit:'Show instructions',cancel:'Cancel',err:'Enter a valid email'},
+      nl: {title:'Koop CLAUDE.md Optimizer',sub:'Kies een betaalmethode. Na betaling bevestigt Pinky handmatig en de licentie-email komt meestal binnen 12 uur in je inbox.',email:'Je email',methodR:'Revolut Pay (aanbevolen)',methodI:'Bankoverschrijving (IBAN)',submit:'Toon instructies',cancel:'Annuleer',err:'Voer een geldig email in'},
+    };
+    const t = labels[lang] || labels.en;
+    if (document.getElementById('buyModal')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'buyModal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(8,8,16,0.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px';
+    overlay.innerHTML =
+      '<div style="background:#12121A;border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:28px;max-width:460px;width:100%;font-family:system-ui,-apple-system,sans-serif">' +
+      '<h3 style="margin:0 0 6px;font-size:18px;font-weight:600;color:#F0F0FF">' + t.title + '</h3>' +
+      '<p style="margin:0 0 18px;color:#8888A0;font-size:13px;line-height:1.5">' + t.sub + '</p>' +
+      '<label style="display:block;margin-bottom:14px;font-size:12px;color:#8888A0">' + t.email +
+      '<input id="buyEmail" type="email" required autofocus style="display:block;width:100%;margin-top:6px;background:#080810;color:#F0F0FF;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit">' +
+      '</label>' +
+      '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">' +
+      '<label style="display:flex;align-items:center;gap:10px;background:#1A1A24;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 12px;cursor:pointer;color:#F0F0FF;font-size:13px">' +
+      '<input type="radio" name="buyMethod" value="revolut" checked style="accent-color:#6C63FF">' + t.methodR + '</label>' +
+      '<label style="display:flex;align-items:center;gap:10px;background:#1A1A24;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 12px;cursor:pointer;color:#F0F0FF;font-size:13px">' +
+      '<input type="radio" name="buyMethod" value="iban" style="accent-color:#6C63FF">' + t.methodI + '</label>' +
+      '</div>' +
+      '<div id="buyErr" style="color:#FF4D6D;font-size:12px;margin-bottom:10px;min-height:16px"></div>' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end">' +
+      '<button id="buyCancel" type="button" style="background:transparent;color:#8888A0;border:1px solid rgba(255,255,255,0.15);padding:10px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px">' + t.cancel + '</button>' +
+      '<button id="buySubmit" type="button" style="background:#6C63FF;color:white;border:0;padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:600;font-family:inherit;font-size:13px">' + t.submit + '</button>' +
+      '</div></div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    overlay.querySelector('#buyCancel').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('#buySubmit').addEventListener('click', async () => {
+      const email = overlay.querySelector('#buyEmail').value.trim();
+      const method = overlay.querySelector('input[name=buyMethod]:checked').value;
+      const errEl = overlay.querySelector('#buyErr');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = t.err; return; }
+      errEl.textContent = '';
+      const submitBtn = overlay.querySelector('#buySubmit');
+      submitBtn.disabled = true; submitBtn.textContent = '...';
+      try {
+        const r = await fetch('/apps/optimizer/api/order', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ email: email, lang: lang, payment_method: method }),
+        });
+        const j = await r.json();
+        if (j.ok && j.instructions_url) {
+          location.href = j.instructions_url;
+        } else {
+          errEl.textContent = j.error || 'error';
+          submitBtn.disabled = false; submitBtn.textContent = t.submit;
+        }
+      } catch (e) {
+        errEl.textContent = 'network error';
+        submitBtn.disabled = false; submitBtn.textContent = t.submit;
+      }
     });
   }
 
